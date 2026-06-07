@@ -2,8 +2,10 @@ from ipaddress import IPv4Address
 from typing import Callable
 from unittest.mock import patch, Mock
 
-from dbusmock import DBusTestCase
+import pytest
 from gi.repository import GLib, Gio
+
+DBusTestCase = pytest.importorskip("dbusmock").DBusTestCase
 
 from blueman.main.DNSServerProvider import DNSServerProvider
 from test.testhelpers.DBusMock import DBusMock
@@ -23,7 +25,7 @@ class TestDNSServerProvider(DBusTestCase):
         cls.start_system_bus()
 
     def test_resolver(self):
-        with open("/tmp/resolv.conf", "w") as f:
+        with open("/tmp/resolv.conf", "w", encoding="utf-8") as f:
             f.write("""# Test configuration
 search mynet
 nameserver 192.0.2.1
@@ -59,7 +61,7 @@ nameserver 198.51.100.1""")
             )
 
     def test_resolver_changed(self):
-        self._test_changed(lambda: open("/tmp/resolv.conf", "w").close())
+        self._test_changed(lambda: open("/tmp/resolv.conf", "w", encoding="utf-8").close())
 
     def test_resolved_changed(self):
         def trigger():
@@ -68,6 +70,20 @@ nameserver 198.51.100.1""")
                 dbus_mock.set_property("org.freedesktop.resolve1.Manager", "DNS", GLib.Variant("a(iiay)", []))
 
         self._test_changed(trigger)
+
+    def test_destroy_stops_changed_notifications(self):
+        mock = Mock()
+        provider = DNSServerProvider()
+        provider.connect("changed", mock)
+        provider.destroy()
+
+        open("/tmp/resolv.conf", "w", encoding="utf-8").close()
+
+        context = GLib.MainContext.default()
+        while context.pending():
+            context.iteration()
+
+        mock.assert_not_called()
 
     @staticmethod
     def _test_changed(action: Callable[[], None]) -> None:

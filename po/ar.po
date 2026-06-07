@@ -215,7 +215,6 @@ msgstr "_تصفير"
 #: data/ui/rename-device.ui:42 data/ui/note.ui:27 blueman/main/Sendto.py:233
 #: blueman/gui/DeviceSelectorDialog.py:19
 #, fuzzy
-#| msgid "Cancelling"
 msgid "_Cancel"
 msgstr "إلغاء"
 
@@ -267,7 +266,6 @@ msgstr "نقطة إتصال شبكية (NAP)"
 
 #: data/ui/services-network.ui:348
 #, fuzzy
-#| msgid "<b>PAN Support</b>"
 msgid "<b>NAP Support</b>"
 msgstr "<b>دعم PAN</b>"
 
@@ -775,7 +773,6 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceMenu.py:303
 #, fuzzy
-#| msgid "<b>Disconnect:</b>"
 msgid "<b>_Disconnect</b>"
 msgstr "<b>قطع الإتصال:</b>"
 
@@ -823,7 +820,6 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceMenu.py:400
 #, fuzzy
-#| msgid "Send files to this device"
 msgid "Block/Unblock this device"
 msgstr "إرسال ملفات إلى هذا الجهاز"
 
@@ -887,7 +883,6 @@ msgstr ""
 
 #: blueman/gui/applet/PluginDialog.py:267
 #, fuzzy
-#| msgid "Dependency issue"
 msgid "No dependencies"
 msgstr "نقص إعتمادية"
 
@@ -1529,7 +1524,6 @@ msgstr "نقطة إتصال شبكية"
 
 #: blueman/DeviceClass.py:242
 #, fuzzy
-#| msgid "Device"
 msgid "Mesh Device"
 msgstr "جهاز"
 
@@ -1601,7 +1595,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:259
 #, fuzzy
-#| msgid "File Sender"
 msgid "Fire Sensor"
 msgstr "مرسل الملفات"
 
@@ -1924,7 +1917,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:344
 #, fuzzy
-#| msgid "Plugins"
 msgid "Plug"
 msgstr "إضافات"
 
@@ -2046,7 +2038,6 @@ msgstr "هاتف ذكي"
 
 #: blueman/DeviceClass.py:373
 #, fuzzy
-#| msgid "Audio Source"
 msgid "Generic Audio Source"
 msgstr "مصدر الصوت"
 
@@ -2064,13 +2055,11 @@ msgstr ""
 
 #: blueman/DeviceClass.py:378
 #, fuzzy
-#| msgid "Pair Device"
 msgid "Broadcasting Device"
 msgstr "إقتران مع  الجهاز"
 
 #: blueman/DeviceClass.py:379
 #, fuzzy
-#| msgid "Service:"
 msgid "Service Desk"
 msgstr "الخدمة:"
 
@@ -2084,7 +2073,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:382
 #, fuzzy
-#| msgid "Audio Profile"
 msgid "Auditorium"
 msgstr "نمط الصوت"
 
@@ -2263,7 +2251,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:427
 #, fuzzy
-#| msgid "Receiving file"
 msgid "Receiver"
 msgstr "استقبال ملف"
 
@@ -3231,10 +3218,6 @@ msgstr "هل تريد حقا تصفير العدّاد؟"
 
 #: blueman/plugins/applet/NetUsage.py:289
 #, fuzzy
-#| msgid ""
-#| "Allows you to monitor your (mobile broadband) network traffic usage. "
-#| "Useful for limited data access plans. This plugin tracks every device "
-#| "seperately."
 msgid ""
 "Allows you to monitor your (mobile broadband) network traffic usage. Useful "
 "for limited data access plans. This plugin tracks every device separately."
@@ -3635,13 +3618,11 @@ msgstr ""
 
 #: blueman/plugins/applet/PulseAudioProfile.py:19
 #, fuzzy
-#| msgid "Adds standard menu items to the status icon menu"
 msgid "Adds audio profile selector to the status icon menu"
 msgstr "تضيف قائمة عناصر قياسية لقائمة أيقونات الحالة"
 
 #: blueman/plugins/applet/PulseAudioProfile.py:83
 #, fuzzy, python-format
-#| msgid "Audio Profile"
 msgid "Audio Profiles for %s"
 msgstr "نمط الصوت"
 

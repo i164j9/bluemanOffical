@@ -2,6 +2,8 @@ import pathlib
 import logging
 import importlib
 import signal
+from typing import cast
+
 from blueman.Functions import plugin_names
 
 from blueman.main.Builder import Builder
@@ -12,8 +14,11 @@ from blueman.plugins.ServicePlugin import ServicePlugin
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
-from gi.repository import GLib
+from gi.repository import GLibUnix
 from gi.repository import Gio
+
+
+NO_SETTINGS_BIND_FLAGS = cast(Gio.SettingsBindFlags, 0)
 
 
 class BluemanServices(Gtk.Application):
@@ -22,6 +27,8 @@ class BluemanServices(Gtk.Application):
         self.window: Gtk.Window | None = None
         self.builder = Builder("services-window.ui")
         self.Config = Gio.Settings(schema_id="org.blueman.general")
+        self.notebook: Gtk.Notebook
+        self.b_apply: Gtk.Button
 
         def do_quit(_: object) -> bool:
             self.quit()
@@ -29,7 +36,7 @@ class BluemanServices(Gtk.Application):
 
         log_system_info()
 
-        s = GLib.unix_signal_source_new(signal.SIGINT)
+        s = GLibUnix.signal_source_new(signal.SIGINT)
         s.set_callback(do_quit)
         s.attach()
 
@@ -47,7 +54,7 @@ class BluemanServices(Gtk.Application):
 
             self.load_plugins()
 
-            self.Config.bind("services-last-item", self.notebook, "page", Gio.SettingsBindFlags.DEFAULT)
+            self.Config.bind("services-last-item", self.notebook, "page", NO_SETTINGS_BIND_FLAGS)
 
         self.window.present_with_time(Gtk.get_current_event_time())
 
@@ -77,17 +84,12 @@ class BluemanServices(Gtk.Application):
             try:
                 importlib.import_module(f"blueman.plugins.services.{plugin}")
             except ImportError:
-                logging.error(f"Unable to load {plugin} plugin", exc_info=True)
+                logging.error("Unable to load %s plugin", plugin, exc_info=True)
 
         for cls in ServicePlugin.__subclasses__():
-            # FIXME this should not fail, if it does its a bug in the plugin
-            try:
-                inst = cls(self)
-            except:  # noqa: E722
-                logging.error(f"Failed to create instance of {cls}", exc_info=True)
-                continue
+            inst = cls(self)
             if not cls.__plugin_info__:
-                logging.warning(f"Invalid plugin info in {cls}")
+                logging.warning("Invalid plugin info in %s", cls)
             else:
                 (name, icon) = cls.__plugin_info__
                 inst.on_load()

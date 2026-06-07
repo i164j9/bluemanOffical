@@ -20,8 +20,6 @@ class ServicePlugin:
         self.parent = parent
         self.widget: Gtk.Grid
 
-        self.__is_exposed = False
-
     # call when option has changed.
     def option_changed_notify(self, option_id: str, state: bool = True) -> None:
 

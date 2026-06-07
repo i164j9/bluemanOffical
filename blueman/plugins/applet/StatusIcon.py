@@ -45,17 +45,22 @@ class StatusIcon(AppletPlugin, GObject.GObject):
     visibility_timeout: int | None = None
 
     _implementations = None
+    _tooltip_title: str
+    _tooltip_text: str
+    _config_handler_id: int | None = None
+    _plugin_handler_ids: list[int]
 
     def on_load(self) -> None:
         GObject.GObject.__init__(self)
         self._tooltip_title = _("Bluetooth Enabled")
         self._tooltip_text = ""
+        self._plugin_handler_ids = []
 
-        self._config.connect("changed::symbolic-status-icons", self.on_symbolic_config_change)
+        self._config_handler_id = self._config.connect("changed::symbolic-status-icons", self.on_symbolic_config_change)
         self.query_visibility(emit=False)
 
-        self.parent.Plugins.connect('plugin-loaded', self._on_plugins_changed)
-        self.parent.Plugins.connect('plugin-unloaded', self._on_plugins_changed)
+        self._plugin_handler_ids.append(self.parent.Plugins.connect('plugin-loaded', self._on_plugins_changed))
+        self._plugin_handler_ids.append(self.parent.Plugins.connect('plugin-unloaded', self._on_plugins_changed))
 
         self._add_dbus_method("GetVisibility", (), "b", lambda: self.visible)
         self._add_dbus_signal("VisibilityChanged", "b")
@@ -67,6 +72,19 @@ class StatusIcon(AppletPlugin, GObject.GObject):
         self._add_dbus_method("GetStatusIconImplementations", (), "as", self._get_status_icon_implementations)
         self._add_dbus_method("GetIconName", (), "s", self._get_icon_name)
         self._add_dbus_method("Activate", (), "", self.parent.Plugins.StandardItems.on_devices)
+
+    def on_unload(self) -> None:
+        if self.visibility_timeout is not None:
+            GLib.source_remove(self.visibility_timeout)
+            self.visibility_timeout = None
+
+        if self._config_handler_id is not None:
+            self._config.disconnect(self._config_handler_id)
+            self._config_handler_id = None
+
+        for handler_id in self._plugin_handler_ids:
+            self.parent.Plugins.disconnect(handler_id)
+        self._plugin_handler_ids = []
 
     def query_visibility(self, delay_hiding: bool = False, emit: bool = True) -> None:
         if self.parent.Manager.get_adapters() or \
@@ -99,7 +117,7 @@ class StatusIcon(AppletPlugin, GObject.GObject):
         self._tooltip_text = "" if text is None else text
         self._emit_dbus_signal("ToolTipTextChanged", self._tooltip_text)
 
-    def on_symbolic_config_change(self, settings: Gio.Settings, key: str) -> None:
+    def on_symbolic_config_change(self, _settings: Gio.Settings, _key: str) -> None:
         self.icon_should_change()
 
     def icon_should_change(self) -> None:

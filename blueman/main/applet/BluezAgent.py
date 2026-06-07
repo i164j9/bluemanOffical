@@ -142,11 +142,13 @@ class BluezAgent(DbusService):
         if self.dialog:
             logging.info("Agent: Another dialog still active, cancelling")
             err(BluezErrorCanceled("Canceled"))
+            return
 
         self.dialog, pin_entry = self.build_passkey_dialog(dev_str, dialog_msg, is_numeric)
         if not self.dialog:
             logging.error("Agent: Failed to build dialog")
             err(BluezErrorCanceled("Canceled"))
+            return
 
         Notification(_("Bluetooth Authentication"), notify_message, icon_name="blueman").show()
 
@@ -176,6 +178,10 @@ class BluezAgent(DbusService):
             self._notification.close()
             self._notification = None
 
+        for notification in self._service_notifications:
+            notification.close()
+        self._service_notifications.clear()
+
     def _on_request_pin_code(self, object_path: ObjectPath, ok: Callable[[str], None],
                              err: Callable[[BluezErrorCanceled | BluezErrorRejected], None]) -> None:
         logging.info("Agent.RequestPinCode")
@@ -194,7 +200,7 @@ class BluezAgent(DbusService):
             self.dialog.present()
 
     def _on_display_passkey(self, object_path: ObjectPath, passkey: int, entered: int) -> None:
-        logging.info(f"DisplayPasskey ({object_path}, {passkey:d} {entered:d})")
+        logging.info("DisplayPasskey (%s, %d %d)", object_path, passkey, entered)
         dev = Device(obj_path=object_path)
         self._devhandlerids[object_path] = dev.connect_signal("property-changed", self._on_device_property_changed)
 
@@ -206,7 +212,7 @@ class BluezAgent(DbusService):
         self._notification.show()
 
     def _on_display_pin_code(self, object_path: ObjectPath, pin_code: str) -> None:
-        logging.info(f'DisplayPinCode ({object_path}, {pin_code})')
+        logging.info("DisplayPinCode (%s, %s)", object_path, pin_code)
         dev = Device(obj_path=object_path)
         self._devhandlerids[object_path] = dev.connect_signal("property-changed", self._on_device_property_changed)
 
@@ -249,7 +255,8 @@ class BluezAgent(DbusService):
             else:
                 err(BluezErrorRejected("Rejected"))
 
-            self._service_notifications.remove(n)
+            if n in self._service_notifications:
+                self._service_notifications.remove(n)
 
         logging.info("Agent.Authorize")
         dev_str = self.get_device_string(object_path)

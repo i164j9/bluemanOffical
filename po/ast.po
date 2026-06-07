@@ -648,13 +648,11 @@ msgstr "Coneutáu"
 
 #: blueman/gui/manager/ManagerDeviceList.py:571
 #, fuzzy
-#| msgid "Trust"
 msgid "Trusted"
 msgstr "Enfotu"
 
 #: blueman/gui/manager/ManagerDeviceList.py:573
 #, fuzzy
-#| msgid "Pair"
 msgid "Paired"
 msgstr "Empareyar"
 
@@ -753,7 +751,6 @@ msgstr "El dispositivu nun respondió"
 
 #: blueman/gui/manager/ManagerDeviceMenu.py:206
 #, fuzzy
-#| msgid "Unknown"
 msgid "Unknown error"
 msgstr "Desconocíu"
 
@@ -817,7 +814,6 @@ msgstr "_Desbloquiar"
 
 #: blueman/gui/manager/ManagerDeviceMenu.py:400
 #, fuzzy
-#| msgid "Send files to this device"
 msgid "Block/Unblock this device"
 msgstr "Unviar ficheros a esti preséu"
 
@@ -879,7 +875,6 @@ msgstr ""
 
 #: blueman/gui/applet/PluginDialog.py:267
 #, fuzzy
-#| msgid "Dependency issue"
 msgid "No dependencies"
 msgstr "Problema de dependencia"
 
@@ -1206,7 +1201,6 @@ msgstr "Xuegu"
 
 #: blueman/DeviceClass.py:168
 #, fuzzy
-#| msgid "Generic Phone"
 msgid "Generic Unknown"
 msgstr "Teléfonu xenéricu"
 
@@ -1224,7 +1218,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:172
 #, fuzzy
-#| msgid "Generic Computer"
 msgid "Server-class Computer"
 msgstr "Ordenador xenéricu"
 
@@ -1254,7 +1247,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:180
 #, fuzzy
-#| msgid "Server"
 msgid "Blade Server"
 msgstr "Sirvidor"
 
@@ -1289,7 +1281,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:188
 #, fuzzy
-#| msgid "Smartphone"
 msgid "Smartwatch"
 msgstr "Teléfonu intelixente"
 
@@ -1433,7 +1424,6 @@ msgstr "Rede de grupu"
 
 #: blueman/DeviceClass.py:221
 #, fuzzy
-#| msgid "Generic Computer"
 msgid "Cycling Computer"
 msgstr "Ordenador xenéricu"
 
@@ -1523,7 +1513,6 @@ msgstr "Puntu d'accesu de rede"
 
 #: blueman/DeviceClass.py:242
 #, fuzzy
-#| msgid "Device"
 msgid "Mesh Device"
 msgstr "Preséu"
 
@@ -1826,7 +1815,6 @@ msgstr "Rede de grupu"
 
 #: blueman/DeviceClass.py:316
 #, fuzzy
-#| msgid "Generic Computer"
 msgid "Generic Humidifier"
 msgstr "Ordenador xenéricu"
 
@@ -1904,7 +1892,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:341
 #, fuzzy
-#| msgid "Generic Phone"
 msgid "Generic Power Device"
 msgstr "Teléfonu xenéricu"
 
@@ -1918,7 +1905,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:344
 #, fuzzy
-#| msgid "Plugins"
 msgid "Plug"
 msgstr "Complementos"
 
@@ -1948,7 +1934,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:351
 #, fuzzy
-#| msgid "Generic Phone"
 msgid "Generic Light Source"
 msgstr "Teléfonu xenéricu"
 
@@ -2015,7 +2000,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:367
 #, fuzzy
-#| msgid "Generic Phone"
 msgid "Generic Audio Sink"
 msgstr "Teléfonu xenéricu"
 
@@ -2037,13 +2021,11 @@ msgstr ""
 
 #: blueman/DeviceClass.py:372
 #, fuzzy
-#| msgid "Smartphone"
 msgid "Speakerphone"
 msgstr "Teléfonu intelixente"
 
 #: blueman/DeviceClass.py:373
 #, fuzzy
-#| msgid "Audio Source"
 msgid "Generic Audio Source"
 msgstr "Fonte d'audiu"
 
@@ -2077,7 +2059,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:382
 #, fuzzy
-#| msgid "Audio Profile"
 msgid "Auditorium"
 msgstr "Perfil d'audiu"
 
@@ -2116,7 +2097,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:391
 #, fuzzy
-#| msgid "Vehicle"
 msgid "Light Vehicle"
 msgstr "Vehículu"
 
@@ -2258,7 +2238,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:427
 #, fuzzy
-#| msgid "Receiving file"
 msgid "Receiver"
 msgstr "Recibiendo ficheru"
 
@@ -3214,10 +3193,6 @@ msgstr "¿De xuru que quies reaniciar el cuntador?"
 
 #: blueman/plugins/applet/NetUsage.py:289
 #, fuzzy
-#| msgid ""
-#| "Allows you to monitor your (mobile broadband) network traffic usage. "
-#| "Useful for limited data access plans. This plugin tracks every device "
-#| "seperately."
 msgid ""
 "Allows you to monitor your (mobile broadband) network traffic usage. Useful "
 "for limited data access plans. This plugin tracks every device separately."
@@ -3466,9 +3441,6 @@ msgstr ""
 
 #: blueman/plugins/applet/ShowConnected.py:22
 #, fuzzy
-#| msgid ""
-#| "Adds an indication on the status icon when Bluetooth is active and shows "
-#| "the number of connections in the tooltip."
 msgid ""
 "Adds an indication on the status icon when Bluetooth is active and shows the "
 "connections in the tooltip."
@@ -3624,7 +3596,6 @@ msgstr "Usa libappindicator p'amosar un iconu d'estáu"
 
 #: blueman/plugins/applet/PulseAudioProfile.py:19
 #, fuzzy
-#| msgid "Adds standard menu items to the status icon menu"
 msgid "Adds audio profile selector to the status icon menu"
 msgstr "Amiesta un menú d'elementos estándar al menú d'estáu d'iconu"
 

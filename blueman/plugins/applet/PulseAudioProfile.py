@@ -16,16 +16,25 @@ class AudioProfiles(AppletPlugin):
     __depends__ = ["Menu"]
     __description__ = _("Adds audio profile selector to the status icon menu")
     __author__ = "Abhijeet Viswa"
+    _pa_event_handler_id: int | None = None
+    _pa_connected_handler_id: int | None = None
 
-    def on_load(self) -> None:
+    def __init__(self, parent: Any):
+        super().__init__(parent)
         self._devices: dict[str, CardInfo] = {}
         self._device_menus: dict[str, MenuItem] = {}
+        self._menu: Any = None
+        self._pa: PulseAudioUtils | None = None
+
+    def on_load(self) -> None:
+        self._devices = {}
+        self._device_menus = {}
 
         self._menu = self.parent.Plugins.Menu
 
-        pa = PulseAudioUtils()
-        pa.connect("event", self.on_pa_event)
-        pa.connect("connected", self.on_pa_ready)
+        self._pa = PulseAudioUtils()
+        self._pa_event_handler_id = self._pa.connect("event", self.on_pa_event)
+        self._pa_connected_handler_id = self._pa.connect("connected", self.on_pa_ready)
 
     def generate_menu(self) -> None:
         devices = self.parent.Manager.get_devices()
@@ -101,12 +110,12 @@ class AudioProfiles(AppletPlugin):
 
         def on_result(res: int) -> None:
             if not res:
-                logging.error(f"Failed to change profile to {profile['name']}")
+                logging.error("Failed to change profile to %s", profile['name'])
 
         pa.set_card_profile(c["index"], profile["name"], on_result)
 
     def on_pa_event(self, utils: PulseAudioUtils, event: int, idx: int) -> None:
-        logging.debug(f"{event} {idx}")
+        logging.debug("%s %s", event, idx)
 
         def get_card_cb(card: CardInfo) -> None:
             drivers = ("module-bluetooth-device.c",
@@ -150,6 +159,12 @@ class AudioProfiles(AppletPlugin):
         self.clear_menu()
 
     def on_unload(self) -> None:
+        if self._pa is not None and self._pa_event_handler_id is not None:
+            self._pa.disconnect(self._pa_event_handler_id)
+            self._pa_event_handler_id = None
+        if self._pa is not None and self._pa_connected_handler_id is not None:
+            self._pa.disconnect(self._pa_connected_handler_id)
+            self._pa_connected_handler_id = None
         self.clear_menu()
 
     def clear_menu(self) -> None:

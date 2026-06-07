@@ -1,3 +1,4 @@
+from typing import TYPE_CHECKING, Any
 from collections.abc import Callable
 from blueman.bluemantyping import BtAddress
 
@@ -16,25 +17,47 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
+if TYPE_CHECKING:
+    from blueman.main.Manager import Blueman
+
+
+def get_connect_handler(
+    manager_menu: ManagerDeviceMenu,
+    device: Device,
+    uuid: str,
+) -> Callable[[Gtk.MenuItem], None]:
+    return lambda _item: manager_menu.connect_service(device, uuid)
+
+
+def get_disconnect_handler(
+    manager_menu: ManagerDeviceMenu,
+    device: Device,
+    uuid: str,
+    port: int,
+) -> Callable[[Gtk.MenuItem], None]:
+    return lambda _item: manager_menu.disconnect_service(device, uuid, port)
+
 
 class Services(ManagerPlugin, MenuItemsProvider):
-    def on_load(self) -> None:
+    def __init__(self, parent: "Blueman"):
+        super().__init__(parent)
         self.icon_theme = Gtk.IconTheme.get_default()
 
-    def _make_x_icon(self, icon_name: str, size: int) -> cairo.ImageSurface:
+    def on_load(self) -> None:
+        return
+
+    def _make_x_icon(self, icon_name: str, size: int) -> Any:
         assert self.parent.window is not None
 
         scale = self.parent.window.get_scale_factor()
         window = self.parent.window.get_window()
 
         target = self.icon_theme.load_surface(icon_name, size, scale, window, Gtk.IconLookupFlags.FORCE_SIZE)
-        assert isinstance(target, cairo.ImageSurface)
         bmx = self.icon_theme.load_surface("blueman-x", size, scale, window, Gtk.IconLookupFlags.FORCE_SIZE)
-        assert isinstance(bmx, cairo.ImageSurface)
 
         x = target.get_width() - bmx.get_width()
         y = target.get_height() - bmx.get_height()
-        context = cairo.Context(target)
+        context = getattr(cairo, "Context")(target)
         context.set_source_surface(bmx, x, y)
         context.paint()
 
@@ -57,7 +80,7 @@ class Services(ManagerPlugin, MenuItemsProvider):
                 item: Gtk.MenuItem = create_menuitem(service.name, service.icon)
                 if service.description:
                     item.props.tooltip_text = service.description
-                item.connect("activate", lambda _item: manager_menu.connect_service(service.device, service.uuid))
+                item.connect("activate", get_connect_handler(manager_menu, service.device, service.uuid))
                 items.append(DeviceMenuItem(item, DeviceMenuItem.Group.CONNECT, service.priority))
                 item.props.sensitive = service.available
                 item.show()
@@ -69,7 +92,7 @@ class Services(ManagerPlugin, MenuItemsProvider):
                 item = create_menuitem(instance.name, surface=surface)
                 item.connect(
                     "activate",
-                    lambda _item: manager_menu.disconnect_service(service.device, service.uuid, instance.port)
+                    get_disconnect_handler(manager_menu, service.device, service.uuid, instance.port)
                 )
                 items.append(DeviceMenuItem(item, DeviceMenuItem.Group.DISCONNECT, service.priority + 100))
                 item.show()

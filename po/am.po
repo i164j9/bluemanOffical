@@ -206,7 +206,6 @@ msgstr "_እንደ ነበር መመለሻ"
 #: data/ui/rename-device.ui:42 data/ui/note.ui:27 blueman/main/Sendto.py:233
 #: blueman/gui/DeviceSelectorDialog.py:19
 #, fuzzy
-#| msgid "Cancelling"
 msgid "_Cancel"
 msgstr "በመሰረዝ ላይ"
 
@@ -245,7 +244,6 @@ msgstr "<b>የ PAN ድጋፍ</b>"
 
 #: data/ui/services-network.ui:317
 #, fuzzy
-#| msgid "Dialup Networking (DUN)"
 msgid "Dial-up Networking"
 msgstr "Dialup Networking (DUN)"
 
@@ -259,7 +257,6 @@ msgstr "ኔትዎርክ መድረሻ ነጥብ (NAP)"
 
 #: data/ui/services-network.ui:348
 #, fuzzy
-#| msgid "<b>PAN Support</b>"
 msgid "<b>NAP Support</b>"
 msgstr "<b>የ PAN ድጋፍ</b>"
 
@@ -564,10 +561,6 @@ msgstr "ተቀብያለሁ"
 
 #: blueman/main/PluginManager.py:67
 #, fuzzy
-#| msgid ""
-#| "<b>An error has occured while loading a plugin. Please notify the "
-#| "developers with the content of this message to our </b>\n"
-#| "<a href=\"http://github.com/blueman-project/blueman/issues\">website.</a>"
 msgid ""
 "<b>An error has occurred while loading a plugin. Please notify the "
 "developers with the content of this message to our </b>\n"
@@ -628,7 +621,6 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceList.py:342
 #, fuzzy
-#| msgid "Rename device"
 msgid "Unnamed device"
 msgstr "አካሉን እንደገና መሰየሚያ"
 
@@ -652,13 +644,11 @@ msgstr "ተገናኝቷል"
 
 #: blueman/gui/manager/ManagerDeviceList.py:571
 #, fuzzy
-#| msgid "Trust"
 msgid "Trusted"
 msgstr "የሚታመን"
 
 #: blueman/gui/manager/ManagerDeviceList.py:573
 #, fuzzy
-#| msgid "Pair"
 msgid "Paired"
 msgstr "ማጣመሪያ"
 
@@ -757,7 +747,6 @@ msgstr "የ አካል መረጃ ማሳያ"
 
 #: blueman/gui/manager/ManagerDeviceMenu.py:206
 #, fuzzy
-#| msgid "Unknown"
 msgid "Unknown error"
 msgstr "ያልታወቀ"
 
@@ -776,7 +765,6 @@ msgstr "በራሱ መገናኛ ገጽታዎች ይገናኛል A2DP ምንጭ: A
 
 #: blueman/gui/manager/ManagerDeviceMenu.py:303
 #, fuzzy
-#| msgid "<b>Disconnect:</b>"
 msgid "<b>_Disconnect</b>"
 msgstr "<b>መለያያ:</b>"
 
@@ -824,7 +812,6 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceMenu.py:400
 #, fuzzy
-#| msgid "Send files to this device"
 msgid "Block/Unblock this device"
 msgstr "ወደ ሌላ አካል ፋይል መላኪያ"
 
@@ -888,7 +875,6 @@ msgstr ""
 
 #: blueman/gui/applet/PluginDialog.py:267
 #, fuzzy
-#| msgid "Dependency issue"
 msgid "No dependencies"
 msgstr "የ ጥገኝነት ችግር"
 
@@ -1533,7 +1519,6 @@ msgstr "ኔትዎርክ መድረሻ ነጥብ"
 
 #: blueman/DeviceClass.py:242
 #, fuzzy
-#| msgid "Device"
 msgid "Mesh Device"
 msgstr "አካል"
 
@@ -1605,7 +1590,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:259
 #, fuzzy
-#| msgid "File Sender"
 msgid "Fire Sensor"
 msgstr "ፋይል መላኪያ"
 
@@ -1928,7 +1912,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:344
 #, fuzzy
-#| msgid "Plugins"
 msgid "Plug"
 msgstr "ተሰኪዎች"
 
@@ -2024,7 +2007,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:367
 #, fuzzy
-#| msgid "Audio Sink"
 msgid "Generic Audio Sink"
 msgstr "የ ድምፅ መጨረሻ"
 
@@ -2051,7 +2033,6 @@ msgstr "ስማርት ስልክ"
 
 #: blueman/DeviceClass.py:373
 #, fuzzy
-#| msgid "Audio Source"
 msgid "Generic Audio Source"
 msgstr "የድምፅ ምንጭ "
 
@@ -2069,13 +2050,11 @@ msgstr ""
 
 #: blueman/DeviceClass.py:378
 #, fuzzy
-#| msgid "Pair Device"
 msgid "Broadcasting Device"
 msgstr "አካል ማጣመሪያ"
 
 #: blueman/DeviceClass.py:379
 #, fuzzy
-#| msgid "Service:"
 msgid "Service Desk"
 msgstr "ግልጋሎት:"
 
@@ -2089,7 +2068,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:382
 #, fuzzy
-#| msgid "Audio Profile"
 msgid "Auditorium"
 msgstr "የ ድምፅ ገጽታ"
 
@@ -2268,7 +2246,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:427
 #, fuzzy
-#| msgid "Receiving file"
 msgid "Receiver"
 msgstr "ፋይል በመቀበል ላይ "
 
@@ -3227,10 +3204,6 @@ msgstr "በ እርግጥ መቁጠሪያውን እንደ ነበር መመለስ 
 
 #: blueman/plugins/applet/NetUsage.py:289
 #, fuzzy
-#| msgid ""
-#| "Allows you to monitor your (mobile broadband) network traffic usage. "
-#| "Useful for limited data access plans. This plugin tracks every device "
-#| "seperately."
 msgid ""
 "Allows you to monitor your (mobile broadband) network traffic usage. Useful "
 "for limited data access plans. This plugin tracks every device separately."
@@ -3480,9 +3453,6 @@ msgstr ""
 
 #: blueman/plugins/applet/ShowConnected.py:22
 #, fuzzy
-#| msgid ""
-#| "Adds an indication on the status icon when Bluetooth is active and shows "
-#| "the number of connections in the tooltip."
 msgid ""
 "Adds an indication on the status icon when Bluetooth is active and shows the "
 "connections in the tooltip."
@@ -3536,7 +3506,6 @@ msgstr "ሊገኝ የሚችል… %ss"
 
 #: blueman/plugins/applet/DiscvManager.py:63
 #, fuzzy
-#| msgid "Discoverable… %ss"
 msgid "Discoverable…"
 msgstr "ሊገኝ የሚችል… %ss"
 
@@ -3569,14 +3538,6 @@ msgstr "በ ግንኙነት ጊዜ የሚፈጸመው ጽሁፍ"
 
 #: blueman/plugins/applet/SerialManager.py:33
 #, fuzzy
-#| msgid ""
-#| "<span size=\"small\">The following arguments will be passed:\n"
-#| "Address, Name, service name, uuid16s, rfcomm node\n"
-#| "For example:\n"
-#| "AA:BB:CC:DD:EE:FF, Phone, DUN service, 0x1103, /dev/rfcomm0\n"
-#| "uuid16s are returned as a comma seperated list\n"
-#| "\n"
-#| "Upon device disconnection the script will be sent a HUP signal</span>"
 msgid ""
 "<span size=\"small\">The following arguments will be passed:\n"
 "Address, Name, service name, uuid16s, rfcomm node\n"
@@ -3652,13 +3613,11 @@ msgstr "ይጠቀማል የ libappindicator ለማሳየት የ statusicon"
 
 #: blueman/plugins/applet/PulseAudioProfile.py:19
 #, fuzzy
-#| msgid "Adds standard menu items to the status icon menu"
 msgid "Adds audio profile selector to the status icon menu"
 msgstr "መደበኛ ዝርዝር እቃዎች መጨመሪያ ለ ሁኔታዎች ምልክት ዝርዝር"
 
 #: blueman/plugins/applet/PulseAudioProfile.py:83
 #, fuzzy, python-format
-#| msgid "Audio Profile"
 msgid "Audio Profiles for %s"
 msgstr "የ ድምፅ ገጽታ"
 

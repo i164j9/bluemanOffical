@@ -31,14 +31,17 @@ class DiscvManager(AppletPlugin):
 
     adapter: Adapter | None
 
+    def __init__(self, parent: Any):
+        super().__init__(parent)
+        self.item: Any
+        self.adapter = None
+        self.time_left = -1
+        self.timeout: int | None = None
+
     def on_load(self) -> None:
         self.item = self.parent.Plugins.Menu.add(self, 20, text=_("_Make Discoverable"), icon_name="edit-find-symbolic",
                                                  tooltip=_("Make the default adapter temporarily visible"),
                                                  callback=self.on_set_discoverable, visible=False)
-        self.adapter = None
-        self.time_left = -1
-
-        self.timeout: int | None = None
 
     def on_unload(self) -> None:
         self.parent.Plugins.Menu.unregister(self)
@@ -83,16 +86,15 @@ class DiscvManager(AppletPlugin):
 
     def on_adapter_removed(self, path: str) -> None:
         logging.info(path)
-        if self.adapter is None:
-            # FIXME we appear to call this more than once on adapter removal
-            logging.warning("Warning: adapter is None")
-        elif path == self.adapter.get_object_path():
-            self.init_adapter()
-            self.update_menuitems()
+        if self.adapter is None or path != self.adapter.get_object_path():
+            return
+
+        self.init_adapter()
+        self.update_menuitems()
 
     def on_adapter_property_changed(self, path: str, key: str, value: Any) -> None:
         if self.adapter and path == self.adapter.get_object_path():
-            logging.debug(f"prop {key} {value}")
+            logging.debug("prop %s %s", key, value)
             if key == "DiscoverableTimeout":
                 if value == 0:  # always visible
                     if self.timeout is not None:

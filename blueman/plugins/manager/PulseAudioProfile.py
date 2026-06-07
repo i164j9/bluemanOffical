@@ -17,14 +17,28 @@ from blueman.main.PulseAudioUtils import CardInfo
 
 
 class PulseAudioProfile(ManagerPlugin, MenuItemsProvider):
+    devices: dict[str, CardInfo]
+    deferred: list[Device]
+    _pa: PulseAudioUtils
+    _pa_event_handler_id: int | None = None
+    _pa_connected_handler_id: int | None = None
+
     def on_load(self) -> None:
         self.devices: dict[str, CardInfo] = {}
 
         self.deferred: list[Device] = []
 
-        pa = PulseAudioUtils()
-        pa.connect("event", self.on_pa_event)
-        pa.connect("connected", self.on_pa_ready)
+        self._pa = PulseAudioUtils()
+        self._pa_event_handler_id = self._pa.connect("event", self.on_pa_event)
+        self._pa_connected_handler_id = self._pa.connect("connected", self.on_pa_ready)
+
+    def on_unload(self) -> None:
+        if self._pa_event_handler_id is not None:
+            self._pa.disconnect(self._pa_event_handler_id)
+            self._pa_event_handler_id = None
+        if self._pa_connected_handler_id is not None:
+            self._pa.disconnect(self._pa_connected_handler_id)
+            self._pa_connected_handler_id = None
 
     def on_pa_ready(self, _utils: PulseAudioUtils) -> None:
         logging.info("connected")
@@ -40,7 +54,7 @@ class PulseAudioProfile(ManagerPlugin, MenuItemsProvider):
                 inst.generate()
 
     def on_pa_event(self, utils: PulseAudioUtils, event: int, idx: int) -> None:
-        logging.debug(f"{event} {idx}")
+        logging.debug("%s %s", event, idx)
 
         def get_card_cb(card: CardInfo) -> None:
             drivers = ("module-bluetooth-device.c",
@@ -110,7 +124,7 @@ class PulseAudioProfile(ManagerPlugin, MenuItemsProvider):
 
     def on_request_menu_items(
         self,
-        manager_menu: ManagerDeviceMenu,
+        _manager_menu: ManagerDeviceMenu,
         device: Device,
         _powered: bool,
     ) -> list[DeviceMenuItem]:

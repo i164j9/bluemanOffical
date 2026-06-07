@@ -1,6 +1,7 @@
 import logging
 import weakref
 from collections.abc import Callable
+from typing import cast
 from blueman.bluemantyping import ObjectPath
 
 from gi.repository import GObject, Gio
@@ -28,7 +29,7 @@ class Manager(GObject.GObject, metaclass=SingletonGObjectMeta):
         self.__transfers: dict[str, tuple[Transfer, tuple[int, ...]]] = {}
 
         self._object_manager = Gio.DBusObjectManagerClient.new_for_bus_sync(
-            Gio.BusType.SESSION, Gio.DBusObjectManagerClientFlags.NONE,
+            Gio.BusType.SESSION, cast(Gio.DBusObjectManagerClientFlags, 0),
             self.__bus_name, '/', None, None, None)
 
         self._manager_handlerids: list[int] = []
@@ -71,6 +72,8 @@ class Manager(GObject.GObject, metaclass=SingletonGObjectMeta):
             for handlerid in handlerids:
                 transfer.disconnect_signal(handlerid)
 
+            self.emit('transfer-completed', object_path, False)
+
         if session_proxy:
             logging.info(object_path)
             self.emit('session-removed', object_path)
@@ -78,7 +81,15 @@ class Manager(GObject.GObject, metaclass=SingletonGObjectMeta):
     def _on_transfer_completed(self, transfer: Transfer, success: bool) -> None:
         transfer_path = transfer.get_object_path()
 
-        logging.info(f"{transfer_path} {success}")
+        tracked_transfer = self.__transfers.pop(transfer_path, None)
+        if tracked_transfer is not None:
+            _, handlerids = tracked_transfer
+            for handlerid in handlerids:
+                transfer.disconnect_signal(handlerid)
+        else:
+            return
+
+        logging.info("%s %s", transfer_path, success)
         self.emit('transfer-completed', transfer_path, success)
 
     @classmethod

@@ -82,6 +82,9 @@ class AutoConnect(AppletPlugin):
             GLib.Source.remove(self.__event_source)
             self.__event_source = None
 
+    def on_unload(self) -> None:
+        self.stop_timer()
+
     @staticmethod
     def __fix_settings(path: ObjectPath, uuid: str) -> BtAddress:
         config = AutoConnectConfig()

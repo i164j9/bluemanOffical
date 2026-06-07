@@ -13,6 +13,11 @@ from gi.repository import Gtk, Gio
 class Transfer(ServicePlugin):
     __plugin_info__ = (_("Transfer"), "folder")
 
+    def __init__(self, parent: object) -> None:
+        super().__init__(parent)
+        self._builder: Builder
+        self._config: Gio.Settings
+
     def on_load(self) -> None:
 
         self._builder = Builder("services-transfer.ui")

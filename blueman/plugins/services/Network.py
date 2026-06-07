@@ -7,24 +7,32 @@ from typing import cast, Literal, Union
 from blueman.Functions import have, get_local_interfaces
 from blueman.main.Builder import Builder
 from blueman.plugins.ServicePlugin import ServicePlugin
-from blueman.main.DBusProxies import Mechanism
-from blueman.main.DBusProxies import AppletService
+from blueman.main.DBusProxies import AppletService, DBusProxyFailed, Mechanism
 from blueman.gui.CommonUi import ErrorDialog
 
 import gi
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gio, Gtk, GObject
+from gi.repository import Gio, GLib, Gtk, GObject
+
+
+DEFAULT_BINDING_FLAGS = cast(GObject.BindingFlags, 0)
 
 
 class Network(ServicePlugin):
     __plugin_info__ = (_("Network"), "network-workgroup")
+
+    def __init__(self, parent: object) -> None:
+        super().__init__(parent)
+        self._builder: Builder
+        self.interfaces: list[tuple[str, ipaddress.IPv4Interface | ipaddress.IPv6Interface]] = []
+        self.Config: Gio.Settings
 
     def on_load(self) -> None:
 
         self._builder = Builder("services-network.ui")
         self.widget = self._builder.get_widget("network", Gtk.Grid)
 
-        self.interfaces: list[tuple[str, ipaddress.IPv4Interface | ipaddress.IPv6Interface]] = []
+        self.interfaces = []
         netifs = get_local_interfaces()
         for iface in netifs:
             if iface != "lo" and iface != "pan1":
@@ -43,9 +51,9 @@ class Network(ServicePlugin):
         if self.on_query_apply_state():
             logging.info("network apply")
 
-            m = Mechanism()
             nap_enable = self._builder.get_widget("nap-enable", Gtk.CheckButton)
             if nap_enable.props.active:
+                stype = "DnsMasqHandler"
 
                 if self._builder.get_widget("r_dhcpd", Gtk.RadioButton).props.active:
                     stype = "DhcpdHandler"
@@ -57,6 +65,7 @@ class Network(ServicePlugin):
                 net_ip = self._builder.get_widget("net_ip", Gtk.Entry)
 
                 try:
+                    m = Mechanism()
                     changed = net_ip.props.text != self.Config["ip4-address"]
                     m.EnableNetwork('(sssb)', net_ip.props.text, "255.255.255.0", stype, changed)
 
@@ -64,7 +73,7 @@ class Network(ServicePlugin):
                         self.Config["nap-enable"] = True
                     self.Config["ip4-address"] = net_ip.props.text
                     self.Config["dhcp-handler"] = stype
-                except Exception as e:
+                except (DBusProxyFailed, GLib.Error) as e:
                     parent = self.widget.get_toplevel()
                     assert isinstance(parent, Gtk.Container)
                     d = ErrorDialog("<b>Failed to apply network settings</b>", excp=e, parent=parent)
@@ -73,6 +82,7 @@ class Network(ServicePlugin):
                     d.destroy()
                     return
             else:
+                m = Mechanism()
                 self.Config["nap-enable"] = False
                 m.DisableNetwork()
 
@@ -191,7 +201,7 @@ class Network(ServicePlugin):
         net_ip.connect("changed", lambda x: self.option_changed_notify("ip", False))
         nap_enable.connect("toggled", lambda x: self.option_changed_notify("nap_enable"))
 
-        nap_enable.bind_property("active", nap_frame, "sensitive", GObject.BindingFlags.DEFAULT)
+        nap_enable.bind_property("active", nap_frame, "sensitive", DEFAULT_BINDING_FLAGS)
 
         applet = AppletService()
 

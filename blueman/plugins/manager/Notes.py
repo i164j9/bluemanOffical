@@ -13,21 +13,41 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
 
+def normalize_note_text(text: str) -> str:
+    return " ".join(text.splitlines()).strip()
+
+
+def build_note_data(text: str, now: datetime.datetime | None = None) -> str | None:
+    normalized = normalize_note_text(text)
+    if not normalized:
+        return None
+
+    timestamp = (now or datetime.datetime.now()).strftime('%Y%m%dT%H%M00')
+    return (
+        'BEGIN:VNOTE \n'
+        'VERSION:1.1 \n'
+        f'BODY;CHARSET=UTF-8: {normalized} \n'
+        f'DCREATED:{timestamp} \n'
+        f'LAST-MODIFIED:{timestamp} \n'
+        'CLASS:PUBLIC \n'
+        'X-IRMC-LUID:000001000000 \n'
+        'END:VNOTE \n'
+    )
+
+
+def update_note_response_state(dialog: Gtk.Dialog, note: Gtk.Entry) -> None:
+    dialog.set_response_sensitive(Gtk.ResponseType.ACCEPT, bool(normalize_note_text(note.get_text())))
+
+
 def send_note_cb(dialog: Gtk.Dialog, response_id: int, device_address: str, text_view: Gtk.Entry) -> None:
-    text = text_view.get_buffer().props.text
+    text = text_view.get_text()
     dialog.destroy()
     if response_id == Gtk.ResponseType.REJECT:
         return
 
-    date = datetime.datetime.now().strftime('%Y%m%dT%H%M00')
-    data = ('BEGIN:VNOTE \n'
-            'VERSION:1.1 \n'
-            f'BODY;CHARSET=UTF-8: {" ".join(text.splitlines())} \n'
-            f'DCREATED:{date} \n'
-            f'LAST-MODIFIED:{date} \n'
-            'CLASS:PUBLIC \n'
-            'X-IRMC-LUID:000001000000 \n'
-            'END:VNOTE \n')
+    data = build_note_data(text)
+    if data is None:
+        return
 
     tempfile = NamedTemporaryFile(suffix='.vnt', prefix='note', delete=False)
     tempfile.write(data.encode('utf-8'))
@@ -41,6 +61,8 @@ def send_note(device: Device, parent: Gtk.ApplicationWindow) -> None:
     dialog.set_transient_for(parent)
     dialog.props.icon_name = 'blueman'
     note = builder.get_widget("note", Gtk.Entry)
+    update_note_response_state(dialog, note)
+    note.connect('changed', lambda _entry: update_note_response_state(dialog, note))
     dialog.connect('response', send_note_cb, device['Address'], note)
     dialog.present()
 

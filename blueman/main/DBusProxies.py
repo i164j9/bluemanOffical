@@ -10,13 +10,17 @@ from blueman.plugins.applet.Menu import MenuItemDict
 from blueman.bluemantyping import ObjectPath
 
 
+NO_DBUS_PROXY_FLAGS = cast(Gio.DBusProxyFlags, 0)
+NO_DBUS_CALL_FLAGS = cast(Gio.DBusCallFlags, 0)
+
+
 class DBusProxyFailed(Exception):
     pass
 
 
 class ProxyBase(Gio.DBusProxy, metaclass=SingletonGObjectMeta):
     def __init__(self, name: str, interface_name: str, object_path: str = "/", systembus: bool = False,
-                 flags: Gio.DBusProxyFlags = Gio.DBusProxyFlags.NONE) -> None:
+                 flags: Gio.DBusProxyFlags = NO_DBUS_PROXY_FLAGS) -> None:
         if systembus:
             bustype = Gio.BusType.SYSTEM
         else:
@@ -33,17 +37,17 @@ class ProxyBase(Gio.DBusProxy, metaclass=SingletonGObjectMeta):
         try:
             self.init()
         except GLib.Error as e:
-            raise DBusProxyFailed(e.message)
+            raise DBusProxyFailed(str(e)) from e
 
     def call_method(self, name: str, params: GLib.Variant | None) -> None:
         def call_finish(proxy: ProxyBase, response: Gio.AsyncResult) -> None:
             try:
                 proxy.call_finish(response)
             except GLib.Error:
-                logging.error(f"Failed to execute method {name}", exc_info=True)
+                logging.error("Failed to execute method %s", name, exc_info=True)
                 raise
 
-        self.call(name, params, Gio.DBusCallFlags.NONE, -1, None, call_finish)
+        self.call(name, params, NO_DBUS_CALL_FLAGS, -1, None, call_finish)
 
 
 class DBus(ProxyBase):
@@ -74,13 +78,13 @@ class AppletPowerManagerService(ProxyBase):
 
     def get_bluetooth_status(self) -> bool:
         result = self.call_sync("org.blueman.Applet.PowerManager.GetBluetoothStatus", None,
-                                Gio.DBusCallFlags.NONE, -1, None)
+                                NO_DBUS_CALL_FLAGS, -1, None)
         value = cast(bool, result.unpack()[0])
         return value
 
     def set_bluetooth_status(self, status: bool) -> None:
         param = GLib.Variant("(b)", (status, ))
-        self.call_sync("org.blueman.Applet.PowerManager.SetBluetoothStatus", param, Gio.DBusCallFlags.NONE, -1, None)
+        self.call_sync("org.blueman.Applet.PowerManager.SetBluetoothStatus", param, NO_DBUS_CALL_FLAGS, -1, None)
 
 
 class AppletDhcpClientService(ProxyBase):
@@ -90,7 +94,7 @@ class AppletDhcpClientService(ProxyBase):
 
     def dchp_client(self, object_path: ObjectPath) -> None:
         param = GLib.Variant("o", object_path)
-        self.call_sync("org.blueman.Applet.DhcpClient.DhcpClient", param, Gio.DBusCallFlags.NONE, -1, None)
+        self.call_sync("org.blueman.Applet.DhcpClient.DhcpClient", param, NO_DBUS_CALL_FLAGS, -1, None)
 
 
 class AppletMenuService(ProxyBase):
@@ -99,33 +103,33 @@ class AppletMenuService(ProxyBase):
                          object_path=AppletService.PATH)
 
     def get_menu(self) -> Iterable[MenuItemDict]:
-        result = self.call_sync("GetMenu", None, Gio.DBusCallFlags.NONE, -1, None)
+        result = self.call_sync("GetMenu", None, NO_DBUS_CALL_FLAGS, -1, None)
         value = cast(Iterable[MenuItemDict], result.unpack()[0])
         return value
 
     def get_statusicon_implementations(self) -> list[str]:
         result = self.call_sync("org.blueman.Applet.StatusIcon.GetStatusIconImplementations", None,
-                                Gio.DBusCallFlags.NONE, -1, None)
+                                NO_DBUS_CALL_FLAGS, -1, None)
         value = cast(list[str], result.unpack()[0])
         return value
 
     def get_icon_name(self) -> str:
-        result = self.call_sync("org.blueman.Applet.StatusIcon.GetIconName", None, Gio.DBusCallFlags.NONE, -1, None)
+        result = self.call_sync("org.blueman.Applet.StatusIcon.GetIconName", None, NO_DBUS_CALL_FLAGS, -1, None)
         value = cast(str, result.unpack()[0])
         return value
 
     def get_tooltip_title(self) -> str:
-        result = self.call_sync("org.blueman.Applet.StatusIcon.GetToolTipTitle", None, Gio.DBusCallFlags.NONE, -1, None)
+        result = self.call_sync("org.blueman.Applet.StatusIcon.GetToolTipTitle", None, NO_DBUS_CALL_FLAGS, -1, None)
         value = cast(str, result.unpack()[0])
         return value
 
     def get_tooltip_text(self) -> str:
-        result = self.call_sync("org.blueman.Applet.StatusIcon.GetToolTipText", None, Gio.DBusCallFlags.NONE, -1, None)
+        result = self.call_sync("org.blueman.Applet.StatusIcon.GetToolTipText", None, NO_DBUS_CALL_FLAGS, -1, None)
         value = cast(str, result.unpack()[0])
         return value
 
     def get_visibility(self) -> bool:
-        result = self.call_sync("org.blueman.Applet.StatusIcon.GetVisibility", None, Gio.DBusCallFlags.NONE, -1, None)
+        result = self.call_sync("org.blueman.Applet.StatusIcon.GetVisibility", None, NO_DBUS_CALL_FLAGS, -1, None)
         value = cast(bool, result.unpack()[0])
         return value
 

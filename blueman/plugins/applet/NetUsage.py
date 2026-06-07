@@ -81,10 +81,10 @@ class Monitor(MonitorBase):
 
     def poll_stats(self) -> bool:
         try:
-            with open(f"/sys/class/net/{self.interface}/statistics/tx_bytes") as f:
+            with open(f"/sys/class/net/{self.interface}/statistics/tx_bytes", encoding="ascii") as f:
                 tx = int(f.readline())
 
-            with open(f"/sys/class/net/{self.interface}/statistics/rx_bytes") as f:
+            with open(f"/sys/class/net/{self.interface}/statistics/rx_bytes", encoding="ascii") as f:
                 rx = int(f.readline())
         except OSError:
             self.poller = None
@@ -98,18 +98,23 @@ class Monitor(MonitorBase):
 
 
 class Dialog:
-    running = False
+    active_dialog: "Dialog | None" = None
+
+    @classmethod
+    def present_existing(cls) -> bool:
+        if cls.active_dialog is None:
+            return False
+
+        cls.active_dialog.present()
+        return True
 
     def __init__(self, plugin: "NetUsage"):
-        if not Dialog.running:
-            Dialog.running = True
-        else:
-            return
         self.plugin = plugin
         builder = Builder("net-usage.ui")
 
         self.dialog = builder.get_widget("dialog", Gtk.Dialog)
         self.dialog.connect("response", self.on_response)
+        Dialog.active_dialog = self
         cr1 = Gtk.CellRendererText()
         cr1.props.ellipsize = Pango.EllipsizeMode.END
 
@@ -130,6 +135,8 @@ class Dialog:
 
         self.l_started = builder.get_widget("l_started", Gtk.Label)
         self.l_duration = builder.get_widget("l_duration", Gtk.Label)
+        self.config: Gio.Settings
+        self.datetime: datetime.datetime
 
         self.b_reset = builder.get_widget("b_reset", Gtk.Button)
         self.b_reset.connect("clicked", self.on_reset)
@@ -184,17 +191,21 @@ class Dialog:
 
         self.dialog.show()
 
+    def present(self) -> None:
+        self.dialog.present()
+
     def on_response(self, _dialog: Gtk.Dialog | None, _response: int | None) -> None:
         for sigid in self._handlerids:
             self.plugin.disconnect(sigid)
         self._handlerids = []
-        Dialog.running = False
+        if Dialog.active_dialog is self:
+            Dialog.active_dialog = None
         self.dialog.destroy()
 
     def update_time(self) -> None:
-        time = self.config["time"]
-        if time:
-            self.datetime = datetime.datetime.fromtimestamp(time)
+        start_time = self.config["time"]
+        if start_time:
+            self.datetime = datetime.datetime.fromtimestamp(start_time)
 
             self.l_started.props.label = str(self.datetime)
 
@@ -298,6 +309,7 @@ class NetUsage(AppletPlugin, GObject.GObject, PPPConnectedListener):
     }
 
     _any_network = None
+    monitors: list[Monitor]
 
     def on_load(self) -> None:
         GObject.GObject.__init__(self)
@@ -315,7 +327,8 @@ class NetUsage(AppletPlugin, GObject.GObject, PPPConnectedListener):
             self.monitor_interface(d, value)
 
     def activate_ui(self) -> None:
-        Dialog(self)
+        if not Dialog.present_existing():
+            Dialog(self)
 
     def on_unload(self) -> None:
         del self._any_network

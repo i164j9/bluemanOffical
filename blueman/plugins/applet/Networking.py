@@ -19,17 +19,23 @@ class Networking(AppletPlugin):
     __author__ = "Walmis"
 
     _dns_server_provider: DNSServerProvider | None = None
+    _dns_server_provider_handler_id: int | None = None
+    _config_handler_id: int | None = None
+    _registered: dict[ObjectPath, bool]
+    Config: Gio.Settings
 
     def on_load(self) -> None:
         self._registered: dict[ObjectPath, bool] = {}
 
         self.Config = Gio.Settings(schema_id="org.blueman.network")
-        self.Config.connect("changed", self.on_config_changed)
+        self._config_handler_id = self.Config.connect("changed", self.on_config_changed)
 
         self._apply_nap_settings()
 
         self._dns_server_provider = DNSServerProvider()
-        self._dns_server_provider.connect("changed", lambda _provider: self._apply_nap_settings())
+        self._dns_server_provider_handler_id = self._dns_server_provider.connect(
+            "changed", lambda _provider: self._apply_nap_settings()
+        )
 
     def on_manager_state_changed(self, state: bool) -> None:
         if state:
@@ -61,8 +67,12 @@ class Networking(AppletPlugin):
             s.unregister("nap")
 
         self._registered = {}
+        if self._dns_server_provider is not None:
+            self._dns_server_provider.disconnect(self._dns_server_provider_handler_id)
+            self._dns_server_provider.destroy()
+            self._dns_server_provider = None
+        self.Config.disconnect(self._config_handler_id)
         del self.Config
-        del self._dns_server_provider
 
     def on_adapter_added(self, path: str) -> None:
         self.update_status()
@@ -75,7 +85,7 @@ class Networking(AppletPlugin):
             self.set_nap(config[key])
 
     def set_nap(self, on: bool) -> None:
-        logging.info(f"set nap {on}")
+        logging.info("set nap %s", on)
         if self.parent.manager_state:
             adapters = self.parent.Manager.get_adapters()
             for adapter in adapters:

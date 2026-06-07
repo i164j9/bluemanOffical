@@ -1,13 +1,13 @@
 import gi
 gi.require_version("Gtk", "3.0")
 
-from gi.repository import Gio, GLib, Gtk
+from gi.repository import Gio, GLibUnix, Gtk
 import logging
 import signal
 from typing import Any, cast
 from blueman.bluemantyping import ObjectPath
 
-from blueman.Functions import *
+from blueman.Functions import log_system_info, setup_icon_path
 from blueman.bluez.Manager import Manager
 from blueman.bluez.Adapter import AnyAdapter
 from blueman.bluez.Device import AnyDevice
@@ -22,9 +22,12 @@ from blueman.plugins.applet.StandardItems import StandardItems
 from blueman.plugins.applet.StatusIcon import StatusIcon
 
 
+NO_APPLICATION_FLAGS = cast(Gio.ApplicationFlags, 0)
+
+
 class BluemanApplet(Gtk.Application):
     def __init__(self) -> None:
-        super().__init__(application_id="org.blueman.Applet", flags=Gio.ApplicationFlags.FLAGS_NONE)
+        super().__init__(application_id="org.blueman.Applet", flags=NO_APPLICATION_FLAGS)
         setup_icon_path()
 
         def do_quit(_: object) -> bool:
@@ -33,7 +36,7 @@ class BluemanApplet(Gtk.Application):
 
         log_system_info()
 
-        s = GLib.unix_signal_source_new(signal.SIGINT)
+        s = GLibUnix.signal_source_new(signal.SIGINT)
         s.set_callback(do_quit)
         s.attach()
 
@@ -76,7 +79,7 @@ class BluemanApplet(Gtk.Application):
             self._active = True
 
     def _on_dbus_name_appeared(self, _connection: Gio.DBusConnection, name: str, owner: str) -> None:
-        logging.info(f"{name} {owner}")
+        logging.info("%s %s", name, owner)
         self.manager_state = True
         self.plugin_run_state_changed = True
         for plugin in self.Plugins.get_loaded_plugins(AppletPlugin):
@@ -98,22 +101,22 @@ class BluemanApplet(Gtk.Application):
             plugin.on_device_property_changed(path, key, value)
 
     def on_adapter_added(self, _manager: Manager, path: ObjectPath) -> None:
-        logging.info(f"Adapter added {path}")
+        logging.info("Adapter added %s", path)
         for plugin in self.Plugins.get_loaded_plugins(AppletPlugin):
             plugin.on_adapter_added(path)
 
     def on_adapter_removed(self, _manager: Manager, path: ObjectPath) -> None:
-        logging.info(f"Adapter removed {path}")
+        logging.info("Adapter removed %s", path)
         for plugin in self.Plugins.get_loaded_plugins(AppletPlugin):
             plugin.on_adapter_removed(path)
 
     def on_device_created(self, _manager: Manager, path: ObjectPath) -> None:
-        logging.info(f"Device created {path}")
+        logging.info("Device created %s", path)
         for plugin in self.Plugins.get_loaded_plugins(AppletPlugin):
             plugin.on_device_created(path)
 
     def on_device_removed(self, _manager: Manager, path: ObjectPath) -> None:
-        logging.info(f"Device removed {path}")
+        logging.info("Device removed %s", path)
         for plugin in self.Plugins.get_loaded_plugins(AppletPlugin):
             plugin.on_device_removed(path)
 

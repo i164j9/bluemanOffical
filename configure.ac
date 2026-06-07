@@ -237,7 +237,7 @@ AM_CONDITIONAL([SYSTEMD_USER_UNIT_DIR], [test "x$systemd_user_unit_dir" != "xno"
 # GSettings related settings
 GLIB_GSETTINGS
 
-AC_OUTPUT([
+AC_CONFIG_FILES([
 Makefile
 apps/Makefile
 apps/blueman-adapters
@@ -342,6 +342,8 @@ test/services/Makefile
 test/services/meta/Makefile
 test/testhelpers/Makefile
 ])
+
+AC_OUTPUT
 
 
 echo

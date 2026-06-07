@@ -1,10 +1,12 @@
 from gettext import gettext as _
-from typing import Any
-from collections.abc import Iterable, Callable
-
-from gi.repository import Gtk, Gdk
+from typing import Any, cast
+from collections.abc import Iterable, Callable, Mapping
 
 import logging
+
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk, Gdk
 
 from gi.repository.GObject import GObject
 
@@ -15,6 +17,37 @@ from blueman.bluez.errors import BluezDBusException
 from blueman.gui.manager.ManagerDeviceMenu import MenuItemsProvider, ManagerDeviceMenu, DeviceMenuItem
 
 from blueman.plugins.ManagerPlugin import ManagerPlugin
+
+
+NO_ACCEL_FLAGS = cast(Gtk.AccelFlags, 0)
+
+
+def _format_hex_bytes(value: object) -> str:
+    if isinstance(value, (bytes, bytearray)):
+        return " ".join(f"{byte:02x}" for byte in value)
+
+    if isinstance(value, Iterable) and not isinstance(value, (str, bytes, bytearray, Mapping)):
+        values = list(value)
+        if values and all(isinstance(item, int) for item in values):
+            return " ".join(f"{item:02x}" for item in values)
+
+    return str(value)
+
+
+def _format_mapping_value(key: object, value: object) -> str:
+    if isinstance(key, int):
+        prefix = f"0x{key:04x}"
+    else:
+        prefix = str(key)
+
+    return f"{prefix}: {_format_hex_bytes(value)}"
+
+
+def format_mapping(data: Mapping[object, object]) -> str:
+    if not data:
+        return ""
+
+    return "\n".join(_format_mapping_value(key, value) for key, value in data.items())
 
 
 def show_info(device: Device, parent: Gtk.Window) -> None:
@@ -31,7 +64,7 @@ def show_info(device: Device, parent: Gtk.Window) -> None:
         return "\n".join([uuid + ' ' + ServiceUUID(uuid).name for uuid in uuids])
 
     def format_advflags(flags: Iterable[bytes]) -> str:
-        return "\n".join([str(flag) for flag in flags])
+        return _format_hex_bytes(flags)
 
     store = Gtk.ListStore(str, str)
     view = Gtk.TreeView(model=store, headers_visible=False)
@@ -40,7 +73,7 @@ def show_info(device: Device, parent: Gtk.Window) -> None:
 
     def on_accel_activated(_group: Gtk.AccelGroup, _dialog: GObject, key: int, _modifier: Gdk.ModifierType) -> bool:
         if key != 99:
-            logging.warning(f"Ignoring key {key}")
+            logging.warning("Ignoring key %s", key)
             return False
 
         store, paths = view_selection.get_selected_rows()
@@ -69,7 +102,7 @@ def show_info(device: Device, parent: Gtk.Window) -> None:
     dialog.add_accel_group(accelgroup)
 
     key, mod = Gtk.accelerator_parse("<Control>C")
-    accelgroup.connect(key, mod, Gtk.AccelFlags.MASK, on_accel_activated)
+    accelgroup.connect(key, mod, NO_ACCEL_FLAGS, on_accel_activated)
 
     for i in range(2):
         column = Gtk.TreeViewColumn()
@@ -98,10 +131,9 @@ def show_info(device: Device, parent: Gtk.Window) -> None:
         ('UUIDs', format_uuids),
         ('Modalias', None),
         ('Adapter', None),
-        # FIXME below 3 we need some sample data to decode and display properly
-        ('ManufacturerData', str),
-        ('ServiceData', str),
-        ('AdvertisingData', str),
+        ('ManufacturerData', format_mapping),
+        ('ServiceData', format_mapping),
+        ('AdvertisingData', format_mapping),
         ('AdvertisingFlags', format_advflags),
         ('WakeAllowed', format_boolean),
         ('PreferredBearer', str)
@@ -114,11 +146,11 @@ def show_info(device: Device, parent: Gtk.Window) -> None:
             else:
                 store.append((name, func(device.get(name))))
         except BluezDBusException:
-            logging.info(f"Could not get property {name}")
-            pass
+            logging.info("Could not get property %s", name)
+            continue
         except ValueError:
-            logging.info(f"Could not add property {name}")
-            pass
+            logging.info("Could not add property %s", name)
+            continue
 
     dialog.run()
     dialog.destroy()

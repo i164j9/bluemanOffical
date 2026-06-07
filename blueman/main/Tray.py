@@ -3,16 +3,23 @@ import logging
 import os
 import signal
 import sys
+from typing import Any, cast
 from blueman.Functions import log_system_info
 from blueman.main.DBusProxies import AppletMenuService, AppletStatusIconService
-from gi.repository import Gio, GLib
+from gi.repository import Gio, GLib, GLibUnix
 
 from blueman.main.indicators.IndicatorInterface import IndicatorNotAvailable
 
 
+NO_APPLICATION_FLAGS = cast(Gio.ApplicationFlags, 0)
+NO_BUS_NAME_WATCHER_FLAGS = cast(Gio.BusNameWatcherFlags, 0)
+
+
 class BluemanTray(Gio.Application):
+    indicator: Any
+
     def __init__(self) -> None:
-        super().__init__(application_id="org.blueman.Tray", flags=Gio.ApplicationFlags.FLAGS_NONE)
+        super().__init__(application_id="org.blueman.Tray", flags=NO_APPLICATION_FLAGS)
         self._active = False
 
         def do_quit(_: object) -> bool:
@@ -21,7 +28,7 @@ class BluemanTray(Gio.Application):
 
         log_system_info()
 
-        s = GLib.unix_signal_source_new(signal.SIGINT)
+        s = GLibUnix.signal_source_new(signal.SIGINT)
         s.set_callback(do_quit)
         s.attach()
 
@@ -31,12 +38,12 @@ class BluemanTray(Gio.Application):
             logging.info("Already running, restarting instance")
             return
 
-        Gio.bus_watch_name(Gio.BusType.SESSION, 'org.blueman.Applet', Gio.BusNameWatcherFlags.NONE,
+        Gio.bus_watch_name(Gio.BusType.SESSION, 'org.blueman.Applet', NO_BUS_NAME_WATCHER_FLAGS,
                            self._on_name_appeared, self._on_name_vanished)
         self.hold()
 
     def _on_name_appeared(self, _connection: Gio.DBusConnection, name: str, _owner: str) -> None:
-        logging.debug(f"Applet started on name {name}, showing indicator")
+        logging.debug("Applet started on name %s, showing indicator", name)
 
         trayicon_service = AppletStatusIconService()
         menu_service = AppletMenuService()
@@ -46,8 +53,8 @@ class BluemanTray(Gio.Application):
                 self.indicator = indicator_class(self, menu_service.get_icon_name())
                 break
             except IndicatorNotAvailable:
-                logging.info(f'Indicator "{indicator_name}" is not available')
-        logging.info(f'Using indicator "{self.indicator.__class__.__name__}"')
+                logging.info('Indicator "%s" is not available', indicator_name)
+        logging.info('Using indicator "%s"', self.indicator.__class__.__name__)
 
         menu_service.connect('g-signal', self.on_signal)
         trayicon_service.connect('g-signal', self.on_signal)
@@ -71,7 +78,7 @@ class BluemanTray(Gio.Application):
 
     def on_signal(self, _applet: AppletMenuService | AppletStatusIconService, _sender_name: str, signal_name: str,
                   vargs: GLib.Variant) -> None:
-        logging.debug(f"{signal_name}")
+        logging.debug("%s", signal_name)
         args = vargs.unpack()
         if signal_name == 'IconNameChanged':
             self.indicator.set_icon(*args)

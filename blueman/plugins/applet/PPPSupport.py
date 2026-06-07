@@ -1,30 +1,31 @@
 from gettext import gettext as _
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from collections.abc import Callable
 
-from _blueman import RFCOMMError
 from blueman.services.meta.SerialService import SerialService
 
 from blueman.bluez.Device import Device
 from blueman.plugins.AppletPlugin import AppletPlugin
 from blueman.gui.Notification import Notification
-from blueman.main.DBusProxies import Mechanism
+from blueman.main.DBusProxies import DBus, DBusProxyFailed, Mechanism
 
 from gi.repository import GLib
 from gi.repository import Gio
 
-import subprocess
 import logging
 
 from blueman.plugins.applet.DBusService import RFCOMMConnectHandler
 from blueman.services import DialupNetwork
 
 if TYPE_CHECKING:
+    from _blueman import RFCOMMError
     from blueman.main.Applet import BluemanApplet
+else:
+    RFCOMMError = Any
 
 
 class PPPConnectedListener:
-    def on_ppp_connected(self, device: Device, rfcomm: str, ppp_port: str) -> None:
+    def on_ppp_connected(self, _device: Device, _rfcomm: str, _ppp_port: str) -> None:
         ...
 
 
@@ -37,13 +38,20 @@ class Connection:
         self.port = port
         self.parent = applet
 
-        stdout, stderr = subprocess.Popen(['ps', 'ax', '-o', 'pid,args'], stdout=subprocess.PIPE).communicate()
-        if b'ModemManager' in stdout:
+        if self._modem_manager_running():
             timeout = 10
-            logging.info(f"ModemManager is running, delaying connection {timeout} sec for it to complete probing")
+            logging.info("ModemManager is running, delaying connection %s sec for it to complete probing", timeout)
             GLib.timeout_add_seconds(timeout, self.connect)
         else:
             self.connect()
+
+    @staticmethod
+    def _modem_manager_running() -> bool:
+        try:
+            return DBus().NameHasOwner("(s)", "org.freedesktop.ModemManager1")
+        except DBusProxyFailed:
+            logging.debug("Failed to query ModemManager owner", exc_info=True)
+            return False
 
     def connect(self) -> bool:
         c = Gio.Settings(schema_id="org.blueman.gsmsetting",
@@ -56,7 +64,7 @@ class Connection:
         return False
 
     def on_error(self, _obj: Mechanism, result: GLib.Error, _user_data: None) -> None:
-        logging.info(f"Failed {result}")
+        logging.info("Failed %s", result)
         self.error_handler(result)
 
         def _connect() -> bool:

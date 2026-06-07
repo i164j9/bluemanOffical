@@ -95,3 +95,9 @@ gschemas.compiled
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
+
+# Local editor and test artifacts
+*~
+*.swp
+*.swo
+/.pytest_cache/

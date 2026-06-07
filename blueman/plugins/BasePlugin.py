@@ -55,7 +55,7 @@ class BasePlugin:
 
     def _on_plugin_delete(self) -> None:
         self.on_delete()
-        logging.debug(f"Deleting plugin instance {self}")
+        logging.debug("Deleting plugin instance %s", self)
 
     @classmethod
     def is_configurable(cls) -> bool:
@@ -81,7 +81,6 @@ class BasePlugin:
     # virtual methods
     def on_load(self) -> None:
         """Do what is necessary for the plugin to work like add watches or create ui elements"""
-        pass
 
     def on_unload(self) -> None:
         """Tear down any watches and ui elements created in on_load"""
@@ -89,7 +88,6 @@ class BasePlugin:
 
     def on_delete(self) -> None:
         """Do cleanup that needs to happen when plugin is deleted"""
-        pass
 
     def get_option(self, key: str) -> Any:
         if key not in self.__class__.__options__:
@@ -107,5 +105,5 @@ class BasePlugin:
         else:
             raise TypeError(f"Wrong type, must be {repr(opt['type'])}")
 
-    def option_changed(self, key: str, value: Any) -> None:
-        pass
+    def option_changed(self, _key: str, _value: Any) -> None:
+        return

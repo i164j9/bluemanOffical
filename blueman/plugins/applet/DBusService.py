@@ -1,15 +1,17 @@
 from gettext import gettext as _
-from typing import Union, TYPE_CHECKING
+from typing import Any, Union, TYPE_CHECKING
 from collections.abc import Callable
 from blueman.bluemantyping import ObjectPath
 
-from _blueman import RFCOMMError
 from gi.repository import GLib
 
 from blueman.Service import Service
 from blueman.bluez.errors import BluezDBusException
 if TYPE_CHECKING:
+    from _blueman import RFCOMMError
     from blueman.main.NetworkManager import NMConnectionError
+else:
+    RFCOMMError = Any
 from blueman.plugins.AppletPlugin import AppletPlugin
 from blueman.bluez.Device import Device
 from blueman.services.Functions import get_service
@@ -20,10 +22,10 @@ from blueman.services.meta import SerialService, NetworkService
 
 
 class RFCOMMConnectedListener:
-    def on_rfcomm_connected(self, service: SerialService, port: str) -> None:
+    def on_rfcomm_connected(self, _service: SerialService, _port: str) -> None:
         ...
 
-    def on_rfcomm_disconnect(self, port: int) -> None:
+    def on_rfcomm_disconnect(self, _port: int) -> None:
         ...
 
 
@@ -49,7 +51,10 @@ class DBusService(AppletPlugin):
     __author__ = "Walmis"
     __dbus_iface_name__ = "org.blueman.Applet"
 
+    _plugin_handler_ids: list[int]
+
     def on_load(self) -> None:
+        self._plugin_handler_ids = []
         self._add_dbus_method("QueryPlugins", (), "as", self.parent.Plugins.get_loaded)
         self._add_dbus_method("QueryAvailablePlugins", (), "as", lambda: list(self.parent.Plugins.get_classes()))
         self._add_dbus_method("SetPluginConfig", ("s", "b"), "", self.parent.Plugins.set_config)
@@ -58,8 +63,13 @@ class DBusService(AppletPlugin):
         self._add_dbus_method("OpenPluginDialog", (), "", self._open_plugin_dialog)
 
         self._add_dbus_signal("PluginsChanged", "")
-        self.parent.Plugins.connect("plugin-loaded", lambda *args: self._plugins_changed())
-        self.parent.Plugins.connect("plugin-unloaded", lambda *args: self._plugins_changed())
+        self._plugin_handler_ids.append(self.parent.Plugins.connect("plugin-loaded", lambda *args: self._plugins_changed()))
+        self._plugin_handler_ids.append(self.parent.Plugins.connect("plugin-unloaded", lambda *args: self._plugins_changed()))
+
+    def on_delete(self) -> None:
+        for handler_id in self._plugin_handler_ids:
+            self.parent.Plugins.disconnect(handler_id)
+        self._plugin_handler_ids = []
 
     def _plugins_changed(self) -> None:
         self._emit_dbus_signal("PluginsChanged")

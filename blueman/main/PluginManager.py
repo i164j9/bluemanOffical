@@ -20,6 +20,10 @@ class LoadException(Exception):
     pass
 
 
+class PluginUnloadException(Exception):
+    pass
+
+
 _T = TypeVar("_T", bound=BasePlugin)
 
 
@@ -61,10 +65,8 @@ class PluginManager(GObject.GObject, Generic[_T]):
         if name:
             try:
                 self.__load_plugin(self.__classes[name])
-            except LoadException:
-                pass
-            except Exception:
-                if user_action:
+            except LoadException as exc:
+                if user_action and exc.__cause__ is not None:
                     d = ErrorDialog(_("<b>An error has occurred while loading "
                                       "a plugin. Please notify the developers "
                                       "with the content of this message to our </b>\n"
@@ -85,9 +87,9 @@ class PluginManager(GObject.GObject, Generic[_T]):
             try:
                 importlib.import_module(self.module_path.__name__ + f".{plugin}")
             except ImportError:
-                logging.error(f"Unable to load plugin module {plugin}", exc_info=True)
+                logging.error("Unable to load plugin module %s", plugin, exc_info=True)
             except PluginException as err:
-                logging.warning(f"Failed to start plugin {plugin}: {err}")
+                logging.warning("Failed to start plugin %s: %s", plugin, err)
 
         for cls in self.plugin_class.__subclasses__():
             self.__classes[cls.__name__] = cls
@@ -123,10 +125,10 @@ class PluginManager(GObject.GObject, Generic[_T]):
                 except LoadException:
                     pass
 
-    def disable_plugin(self, plugin: str) -> bool:
+    def disable_plugin(self, _plugin: str) -> bool:
         return False
 
-    def enable_plugin(self, plugin: str) -> bool:
+    def enable_plugin(self, _plugin: str) -> bool:
         return True
 
     def __load_plugin(self, cls: type[_T]) -> None:
@@ -136,10 +138,10 @@ class PluginManager(GObject.GObject, Generic[_T]):
         for dep in cls.__depends__:
             if dep not in self.__loaded:
                 if dep not in self.__classes:
-                    raise Exception(f"Could not satisfy dependency {cls.__name__} -> {dep}")
+                    raise LoadException(f"Could not satisfy dependency {cls.__name__} -> {dep}")
                 try:
                     self.__load_plugin(self.__classes[dep])
-                except Exception as e:
+                except LoadException as e:
                     logging.exception(e)
                     raise
 
@@ -147,7 +149,7 @@ class PluginManager(GObject.GObject, Generic[_T]):
             if cfl in self.__classes:
                 if self.__classes[cfl].__priority__ > cls.__priority__ and not self.disable_plugin(cfl) \
                         and not self.enable_plugin(cls.__name__):
-                    logging.warning(f"Not loading {cls.__name__} because its conflict has higher priority")
+                    logging.warning("Not loading %s because its conflict has higher priority", cls.__name__)
                     return
 
             if cfl in self.__loaded:
@@ -156,16 +158,16 @@ class PluginManager(GObject.GObject, Generic[_T]):
                 else:
                     raise LoadException(f"Not loading conflicting plugin {cls.__name__} due to lower priority")
 
-        logging.info(f"loading {cls}")
-        inst = cls(self.parent)
         try:
-            inst._load()
-        except Exception:
-            logging.error(f"Failed to load {cls.__name__}", exc_info=True)
+            logging.info("loading %s", cls)
+            inst = cls(self.parent)
+            getattr(inst, "_load")()
+        except Exception as exc:
+            logging.error("Failed to load %s", cls.__name__, exc_info=True)
             if not cls.__unloadable__:
                 bmexit()
 
-            raise  # NOTE TO SELF: might cause bugs
+            raise LoadException(f"Failed to load {cls.__name__}") from exc
 
         else:
             self._plugins[cls.__name__] = inst
@@ -185,10 +187,10 @@ class PluginManager(GObject.GObject, Generic[_T]):
                 self.unload_plugin(d)
 
             if name in self.__loaded:
-                logging.info(f"Unloading {name}")
+                logging.info("Unloading %s", name)
                 try:
                     inst = self._plugins[name]
-                    inst._unload()
+                    getattr(inst, "_unload")()
                 except NotImplementedError:
                     logging.warning("Plugin cannot be unloaded")
                 else:
@@ -197,7 +199,7 @@ class PluginManager(GObject.GObject, Generic[_T]):
                     self.emit("plugin-unloaded", name)
 
         else:
-            raise Exception(f"Plugin {name} is not unloadable")
+            raise PluginUnloadException(f"Plugin {name} is not unloadable")
 
     def get_plugins(self) -> dict[str, _T]:
         return self._plugins
@@ -251,16 +253,16 @@ class PersistentPluginManager(PluginManager[_T]):
             try:
                 cls: type[BasePlugin] = self.get_classes()[item]
                 if not cls.__unloadable__ and disable:
-                    logging.warning(f"warning: {item} is not unloadable")
+                    logging.warning("warning: %s is not unloadable", item)
                 elif item in self.get_loaded() and disable:
                     self.unload_plugin(item)
                 elif item not in self.get_loaded() and not disable:
                     try:
                         self.load_plugin(item, user_action=True)
-                    except Exception as e:
+                    except LoadException as e:
                         logging.exception(e)
                         self.set_config(item, False)
 
             except KeyError:
-                logging.warning(f"warning: Plugin {item} not found")
+                logging.warning("warning: Plugin %s not found", item)
                 continue

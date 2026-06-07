@@ -18,7 +18,7 @@
 #
 from time import sleep
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from collections.abc import Callable, Iterable
 import re
 import os
@@ -36,8 +36,6 @@ import struct
 import socket
 import array
 import time
-import subprocess
-import cairo
 
 from blueman.main.DBusProxies import AppletService, AppletPowerManagerService, DBusProxyFailed
 from blueman.Constants import BIN_DIR, ICON_PATH, BLUETOOTHD_PATH
@@ -48,6 +46,7 @@ gi.require_version("Gdk", "3.0")
 from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import GdkPixbuf
+from gi.repository import GLib
 from gi.repository import Gio
 
 __all__ = ["check_bluetooth_status", "launch", "setup_icon_path", "adapter_path_to_name", "e_", "bmexit",
@@ -112,7 +111,7 @@ def launch(
     if sn:
         flags = Gio.AppInfoCreateFlags.SUPPORTS_STARTUP_NOTIFICATION
     else:
-        flags = Gio.AppInfoCreateFlags.NONE
+        flags = cast(Gio.AppInfoCreateFlags, 0)
 
     env = os.environ
     env["BLUEMAN_EVENT_TIME"] = str(timestamp)
@@ -134,7 +133,7 @@ def launch(
     launched: bool = appinfo.launch(files, context)
 
     if not launched:
-        logging.error(f"Command: {cmd} failed")
+        logging.error("Command: %s failed", cmd)
 
     return launched
 
@@ -185,7 +184,7 @@ def create_menuitem(
     text: str,
     icon_name: str | None = None,
     pixbuf: GdkPixbuf.Pixbuf | None = None,
-    surface: cairo.Surface | None = None,
+    surface: Any | None = None,
 ) -> Gtk.ImageMenuItem:
     image = Gtk.Image(pixel_size=16)
     if icon_name:
@@ -283,7 +282,7 @@ def open_rfcomm(file: str, mode: int) -> int:
         return os.open(file, mode | os.O_EXCL | os.O_NONBLOCK | os.O_NOCTTY)
     except OSError as err:
         if err.errno == errno.EBUSY:
-            logging.warning(f"{file} is busy, delaying 2 seconds")
+            logging.warning("%s is busy, delaying 2 seconds", file)
             sleep(2)
             return open_rfcomm(file, mode)
         else:
@@ -306,7 +305,7 @@ def get_local_interfaces() -> dict[str, tuple[str, str | None]]:
     """ Returns a dictionary of name:ip, mask key value pairs. """
     siocgifconf = 0x8912
     names = array.array('B', 4096 * b'\0')
-    names_address, names_length = names.buffer_info()
+    names_address, _names_length = names.buffer_info()
     mutable_byte_buffer = struct.pack('iL', 4096, names_address)
 
     try:
@@ -317,7 +316,7 @@ def get_local_interfaces() -> dict[str, tuple[str, str | None]]:
                 logging.error('siocgifconf failed')
                 return {}
 
-            max_bytes_out, names_address_out = struct.unpack('iL', mutated_byte_buffer)
+            max_bytes_out, _names_address_out = struct.unpack('iL', mutated_byte_buffer)
             namestr = names.tobytes()
 
             ip_dict = {}
@@ -350,27 +349,30 @@ def log_system_info() -> None:
                         key, val = line.split("=")
                         release_dict[key] = val.strip("\"")
                     except ValueError:
-                        logging.error(f"Unable to parse line: {line}")
+                        logging.error("Unable to parse line: %s", line)
         except OSError:
-            logging.error(f"Could not read {path.as_uri()}")
+            logging.error("Could not read %s", path.as_uri())
         return release_dict
 
+    def on_bluez_version_complete(process: Gio.Subprocess, result: Gio.AsyncResult) -> None:
+        try:
+            _ok, stdout, _stderr = process.communicate_utf8_finish(result)
+        except GLib.Error as err:
+            logging.info("Failed to run bluetoothd: %s", err)
+            return
+
+        bluez_version = stdout.strip() if stdout else "Unknown"
+        logging.info("BlueZ version: %s", bluez_version)
+
     try:
-        complete = subprocess.run(
+        process = Gio.Subprocess.new(
             [BLUETOOTHD_PATH, "-v"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            timeout=2
+            Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_MERGE,
         )
-    except OSError as err:
-        complete = None
-        logging.info(f"Failed to run bluetoothd {err.strerror}")
-    except subprocess.TimeoutExpired:
-        complete = None
-        logging.info("Timeout running bluetoothd")
-    bluez_version = complete.stdout.strip() if complete else "Unknown"
-    logging.info(f"BlueZ version: {bluez_version}")
+    except GLib.Error as err:
+        logging.info("Failed to start bluetoothd probe: %s", err)
+    else:
+        process.communicate_utf8_async(None, None, on_bluez_version_complete)
 
     etc_os_release = Path("/etc/os-release")
     lib_os_release = Path("/usr/lib/os-release")
@@ -382,11 +384,11 @@ def log_system_info() -> None:
         os_release = {}
 
     version = os_release.get("VERSION", "version not provided")
-    logging.info(f"Distribution: {os_release['NAME']} - {version}")
+    logging.info("Distribution: %s - %s", os_release['NAME'], version)
 
     desktop = os.environ.get("XDG_CURRENT_DESKTOP", "Unknown")
     session_type = os.environ.get("XDG_SESSION_TYPE", "Unknown")
-    logging.info(f"Running: {desktop} on {session_type}")
+    logging.info("Running: %s on %s", desktop, session_type)
 
 
 def plugin_names(path: pathlib.Path) -> list[str]:

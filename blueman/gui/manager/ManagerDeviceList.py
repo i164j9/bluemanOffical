@@ -42,6 +42,102 @@ class SurfaceObject(GObject.Object):
         self.surface = surface
 
 
+def get_power_level_values(batteries: dict[str, Battery], device: Device, cinfo: conn_info) -> dict[str, float]:
+    bars: dict[str, float] = {}
+
+    obj_path = device.get_object_path()
+    if obj_path in batteries:
+        bars["battery"] = batteries[obj_path]["Percentage"]
+
+    # Bluetooth LE devices often do not support the legacy connection info reads.
+    # Keep any available battery percentage, but avoid inventing signal values.
+    if cinfo.failed:
+        return bars
+
+    try:
+        bars["rssi"] = max(50 + float(cinfo.get_rssi()) / 127 * 50, 10)
+    except ConnInfoReadError:
+        bars["rssi"] = 50
+
+    try:
+        bars["tpl"] = max(50 + float(cinfo.get_tpl()) / 127 * 50, 10)
+    except ConnInfoReadError:
+        bars["tpl"] = 50
+
+    return bars
+
+
+def build_power_tooltip_lines(
+    column_name: str,
+    connected: bool,
+    battery: float,
+    rssi: float,
+    tpl: float,
+    signal_levels_available: bool,
+) -> list[str]:
+    if not connected:
+        return []
+
+    lines = [_("<b>Connected</b>")]
+
+    if battery != 0:
+        if column_name == "battery_pb":
+            lines.append(f"<b>Battery: {int(battery)}%</b>")
+        else:
+            lines.append(f"Battery: {int(battery)}%")
+
+    if rssi != 0:
+        if rssi < 30:
+            rssi_state = _("Poor")
+        elif rssi < 40:
+            rssi_state = _("Sub-optimal")
+        elif rssi < 60:
+            rssi_state = _("Optimal")
+        elif rssi < 70:
+            rssi_state = _("Much")
+        else:
+            rssi_state = _("Too much")
+
+        if column_name == "rssi_pb":
+            lines.append(_("<b>Received Signal Strength: %(rssi)u%%</b> <i>(%(rssi_state)s)</i>") %
+                         {"rssi": rssi, "rssi_state": rssi_state})
+        else:
+            lines.append(_("Received Signal Strength: %(rssi)u%% <i>(%(rssi_state)s)</i>") %
+                         {"rssi": rssi, "rssi_state": rssi_state})
+    elif not signal_levels_available and column_name == "rssi_pb":
+        lines.append(_("Received signal strength is not available for this device."))
+
+    if tpl != 0:
+        if tpl < 30:
+            tpl_state = _("Low")
+        elif tpl < 40:
+            tpl_state = _("Sub-optimal")
+        elif tpl < 60:
+            tpl_state = _("Optimal")
+        elif tpl < 70:
+            tpl_state = _("High")
+        else:
+            tpl_state = _("Very High")
+
+        if column_name == "tpl_pb":
+            lines.append(_("<b>Transmit Power Level: %(tpl)u%%</b> <i>(%(tpl_state)s)</i>") %
+                         {"tpl": tpl, "tpl_state": tpl_state})
+        else:
+            lines.append(_("Transmit Power Level: %(tpl)u%% <i>(%(tpl_state)s)</i>") %
+                         {"tpl": tpl, "tpl_state": tpl_state})
+    elif not signal_levels_available and column_name == "tpl_pb":
+        lines.append(_("Transmit power level is not available for this device."))
+
+    return lines
+
+
+def get_unavailable_power_columns(signal_levels_available: bool) -> tuple[str, ...]:
+    if signal_levels_available:
+        return ()
+
+    return ("rssi_pb", "tpl_pb")
+
+
 class ManagerDeviceList(DeviceList):
     def __init__(self, inst: "Blueman", adapter: str | None = None) -> None:
         cr = Gtk.CellRendererText()
@@ -70,6 +166,7 @@ class ManagerDeviceList(DeviceList):
             {"id": "battery", "type": float},
             {"id": "rssi", "type": float},
             {"id": "tpl", "type": float},
+            {"id": "signal_levels_available", "type": bool},
             {"id": "cell_fader", "type": CellFade},
             {"id": "row_fader", "type": TreeRowFade},
             {"id": "initial_anim", "type": bool},
@@ -86,6 +183,7 @@ class ManagerDeviceList(DeviceList):
         self.manager.connect_signal("battery-created", self.on_battery_created)
         self.manager.connect_signal("battery-removed", self.on_battery_removed)
         self._batteries: dict[str, Battery] = {}
+        self._power_level_placeholder_pb: GdkPixbuf.Pixbuf | None = None
 
         self.Config = Gio.Settings(schema_id="org.blueman.general")
         self.Config.connect('changed', self._on_settings_changed)
@@ -496,27 +594,16 @@ class ManagerDeviceList(DeviceList):
             self.set(tree_iter, blocked=value)
 
     def _update_power_levels(self, tree_iter: Gtk.TreeIter, device: Device, cinfo: conn_info) -> None:
-        row = self.get(tree_iter, "cell_fader", "battery", "rssi", "lq", "tpl")
+        row = self.get(tree_iter, "cell_fader", "battery", "lq", "rssi", "tpl")
 
-        bars = {}
+        bars = get_power_level_values(self._batteries, device, cinfo)
+        signal_levels_available = not cinfo.failed
+        self.set(tree_iter, signal_levels_available=signal_levels_available)
 
-        obj_path = device.get_object_path()
-        if obj_path in self._batteries:
-            bars["battery"] = self._batteries[obj_path]["Percentage"]
-
-        # cinfo init may fail for bluetooth devices version 4 and up
-        # FIXME Workaround is horrible and we should show something better
-        if cinfo.failed:
-            bars.update({"rssi": 100.0, "tpl": 100.0})
-        else:
-            try:
-                bars["rssi"] = max(50 + float(cinfo.get_rssi()) / 127 * 50, 10)
-            except ConnInfoReadError:
-                bars["rssi"] = 50
-            try:
-                bars["tpl"] = max(50 + float(cinfo.get_tpl()) / 127 * 50, 10)
-            except ConnInfoReadError:
-                bars["tpl"] = 50
+        unavailable_columns = get_unavailable_power_columns(signal_levels_available)
+        if unavailable_columns:
+            placeholder = self._load_power_level_placeholder_pixbuf()
+            self.set(tree_iter, **{column: placeholder for column in unavailable_columns})
 
         if row["battery"] == row["rssi"] == row["tpl"] == 0:
             self._prepare_fader(row["cell_fader"]).animate(start=0.0, end=1.0, duration=400)
@@ -530,14 +617,40 @@ class ManagerDeviceList(DeviceList):
                 icon = GdkPixbuf.Pixbuf.new_from_file_at_scale(path.as_posix(), w, h, True)
                 self.set(tree_iter, **{name: perc, f"{name}_pb": icon})
 
+
     def _disable_power_levels(self, tree_iter: Gtk.TreeIter) -> None:
         row = self.get(tree_iter, "cell_fader", "battery", "rssi", "tpl")
         if row["battery"] == row["rssi"] == row["tpl"] == 0:
+            self.set(tree_iter, signal_levels_available=False)
             return
 
-        self.set(tree_iter, battery=0, rssi=0, tpl=0)
+        self.set(tree_iter, battery=0, rssi=0, tpl=0, signal_levels_available=False)
         self._prepare_fader(row["cell_fader"], lambda: self.set(tree_iter, battery_pb=None, rssi_pb=None,
                                                                 tpl_pb=None)).animate(start=1.0, end=0.0, duration=400)
+
+    def _load_power_level_placeholder_pixbuf(self) -> GdkPixbuf.Pixbuf:
+        if self._power_level_placeholder_pb is not None:
+            return self._power_level_placeholder_pb
+
+        scale = self.get_scale_factor()
+        size = 14 * scale
+        icon_info = self.icon_theme.lookup_icon_for_scale(
+            "dialog-question-symbolic",
+            size,
+            scale,
+            Gtk.IconLookupFlags.FORCE_SIZE,
+        )
+        if icon_info is None:
+            icon_info = self.icon_theme.lookup_icon_for_scale(
+                "image-missing",
+                size,
+                scale,
+                Gtk.IconLookupFlags.FORCE_SIZE,
+            )
+            assert icon_info is not None
+
+        self._power_level_placeholder_pb = icon_info.load_icon()
+        return self._power_level_placeholder_pb
 
     def _prepare_fader(self, fader: AnimBase, callback: Callable[[], None] | None = None) -> AnimBase:
         def on_finished(finished_fader: AnimBase) -> None:
@@ -591,59 +704,19 @@ class ManagerDeviceList(DeviceList):
             tree_iter = self.get_iter(path[0])
             assert tree_iter is not None
 
-            dt = self.get(tree_iter, "connected")["connected"]
-            if not dt:
+            row = self.get(tree_iter, "connected", "battery", "rssi", "tpl", "signal_levels_available")
+            column_name = next(name for name, column in self.view_columns.items() if column == path[1])
+
+            lines = build_power_tooltip_lines(
+                column_name,
+                row["connected"],
+                row["battery"],
+                row["rssi"],
+                row["tpl"],
+                row["signal_levels_available"],
+            )
+            if not lines:
                 return False
-
-            lines = [_("<b>Connected</b>")]
-
-            battery = self.get(tree_iter, "battery")["battery"]
-            rssi = self.get(tree_iter, "rssi")["rssi"]
-            tpl = self.get(tree_iter, "tpl")["tpl"]
-
-            if battery != 0:
-                if path[1] == self.view_columns["battery_pb"]:
-                    lines.append(f"<b>Battery: {int(battery)}%</b>")
-                else:
-                    lines.append(f"Battery: {int(battery)}%")
-
-            if rssi != 0:
-                if rssi < 30:
-                    rssi_state = _("Poor")
-                elif rssi < 40:
-                    rssi_state = _("Sub-optimal")
-                elif rssi < 60:
-                    rssi_state = _("Optimal")
-                elif rssi < 70:
-                    rssi_state = _("Much")
-                else:
-                    rssi_state = _("Too much")
-
-                if path[1] == self.view_columns["rssi_pb"]:
-                    lines.append(_("<b>Received Signal Strength: %(rssi)u%%</b> <i>(%(rssi_state)s)</i>") %
-                                 {"rssi": rssi, "rssi_state": rssi_state})
-                else:
-                    lines.append(_("Received Signal Strength: %(rssi)u%% <i>(%(rssi_state)s)</i>") %
-                                 {"rssi": rssi, "rssi_state": rssi_state})
-
-            if tpl != 0:
-                if tpl < 30:
-                    tpl_state = _("Low")
-                elif tpl < 40:
-                    tpl_state = _("Sub-optimal")
-                elif tpl < 60:
-                    tpl_state = _("Optimal")
-                elif tpl < 70:
-                    tpl_state = _("High")
-                else:
-                    tpl_state = _("Very High")
-
-                if path[1] == self.view_columns["tpl_pb"]:
-                    lines.append(_("<b>Transmit Power Level: %(tpl)u%%</b> <i>(%(tpl_state)s)</i>") %
-                                 {"tpl": tpl, "tpl_state": tpl_state})
-                else:
-                    lines.append(_("Transmit Power Level: %(tpl)u%% <i>(%(tpl_state)s)</i>") %
-                                 {"tpl": tpl, "tpl_state": tpl_state})
 
             tooltip.set_markup("\n".join(lines))
             self.tooltip_row = path[0]

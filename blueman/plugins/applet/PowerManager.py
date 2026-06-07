@@ -14,7 +14,7 @@ from blueman.plugins.applet.StatusIcon import StatusIconProvider
 
 
 class PowerStateListener:
-    def on_power_state_changed(self, manager: "PowerManager", state: bool) -> None:
+    def on_power_state_changed(self, _manager: "PowerManager", _state: bool) -> None:
         return
 
 
@@ -22,8 +22,8 @@ class PowerStateHandler:
     def on_power_state_query(self) -> "PowerManager.State":
         return PowerManager.State.ON
 
-    def on_power_state_change_requested(self, manager: "PowerManager", state: bool,
-                                        cb: Callable[[bool], None]) -> None:
+    def on_power_state_change_requested(self, _manager: "PowerManager", _state: bool,
+                                        _cb: Callable[[bool], None]) -> None:
         ...
 
 
@@ -40,6 +40,13 @@ class PowerManager(AppletPlugin, StatusIconProvider):
         OFF = 1
         OFF_FORCED = 0
 
+    item: Any
+    adapter_state: bool
+    current_state: bool
+    request_in_progress: bool
+    _state_sync_source_id: int | None = None
+    _pending_callbacks: set["PowerManager.Callback"]
+
     def on_load(self) -> None:
         self.item = self.parent.Plugins.Menu.add(self, 1, text=_("<b>Turn Bluetooth _Off</b>"), markup=True,
                                                  icon_name="bluetooth-disabled-symbolic",
@@ -49,12 +56,25 @@ class PowerManager(AppletPlugin, StatusIconProvider):
         self.current_state = True
 
         self.request_in_progress = False
+        self._pending_callbacks: set[PowerManager.Callback] = set()
 
         self._add_dbus_signal("BluetoothStatusChanged", "b")
         self._add_dbus_method("SetBluetoothStatus", ("b",), "", self.request_power_state)
         self._add_dbus_method("GetBluetoothStatus", (), "b", self.get_bluetooth_status)
 
+    def track_callback(self, callback: "PowerManager.Callback") -> None:
+        self._pending_callbacks.add(callback)
+
+    def forget_callback(self, callback: "PowerManager.Callback") -> None:
+        self._pending_callbacks.discard(callback)
+
     def on_unload(self) -> None:
+        if self._state_sync_source_id is not None:
+            GLib.source_remove(self._state_sync_source_id)
+            self._state_sync_source_id = None
+        for callback in list(self._pending_callbacks):
+            callback.cancel()
+        self._pending_callbacks.clear()
         self.parent.Plugins.Menu.unregister(self)
 
     @property
@@ -63,11 +83,18 @@ class PowerManager(AppletPlugin, StatusIconProvider):
 
     def on_manager_state_changed(self, state: bool) -> None:
         if state:
+            if self._state_sync_source_id is not None:
+                GLib.source_remove(self._state_sync_source_id)
+
             def timeout() -> bool:
+                self._state_sync_source_id = None
                 self.request_power_state(self.get_adapter_state())
                 return False
 
-            GLib.timeout_add(1000, timeout)
+            self._state_sync_source_id = GLib.timeout_add(1000, timeout)
+        elif self._state_sync_source_id is not None:
+            GLib.source_remove(self._state_sync_source_id)
+            self._state_sync_source_id = None
 
     def get_adapter_state(self) -> bool:
         adapters = self.parent.Manager.get_adapters()
@@ -84,8 +111,8 @@ class PowerManager(AppletPlugin, StatusIconProvider):
                 adapter.set("Powered", state)
 
             self.adapter_state = state
-        except Exception:
-            logging.error("Exception occurred", exc_info=True)
+        except GLib.Error:
+            logging.error("Failed to set adapter power state", exc_info=True)
 
     class Callback:
         def __init__(self, parent: "PowerManager", state: bool):
@@ -95,6 +122,7 @@ class PowerManager(AppletPlugin, StatusIconProvider):
             self.state = state
             self.success = False
             self.timer = GLib.timeout_add(5000, self.timeout)
+            self.parent.track_callback(self)
 
         def __call__(self, result: bool) -> None:
             self.called += 1
@@ -107,22 +135,28 @@ class PowerManager(AppletPlugin, StatusIconProvider):
         def check(self) -> None:
             if self.called == self.num_cb:
                 GLib.source_remove(self.timer)
+                self.parent.forget_callback(self)
                 logging.info("callbacks done")
                 self.parent.set_adapter_state(self.state)
                 self.parent.update_power_state()
                 self.parent.request_in_progress = False
 
         def timeout(self) -> bool:
+            self.parent.forget_callback(self)
             logging.info("Timeout reached while setting power state")
             self.parent.update_power_state()
             self.parent.request_in_progress = False
             return False
 
+        def cancel(self) -> None:
+            GLib.source_remove(self.timer)
+            self.parent.forget_callback(self)
+
     def request_power_state(self, state: bool, force: bool = False) -> None:
         if self.current_state != state or force:
             if not self.request_in_progress:
                 self.request_in_progress = True
-                logging.info(f"Requesting {state}")
+                logging.info("Requesting %s", state)
                 cb = PowerManager.Callback(self, state)
 
                 handlers = list(self.parent.Plugins.get_loaded_plugins(PowerStateHandler))
@@ -161,10 +195,11 @@ class PowerManager(AppletPlugin, StatusIconProvider):
 
             new_state = True
 
-        logging.info(f"off {off} | foff {foff} | on {on} | current state {self.current_state} | new state {new_state}")
+        logging.info("off %s | foff %s | on %s | current state %s | new state %s",
+                     off, foff, on, self.current_state, new_state)
 
         if self.current_state != new_state:
-            logging.info(f"Signalling {new_state}")
+            logging.info("Signalling %s", new_state)
             self.current_state = new_state
 
             self._emit_dbus_signal("BluetoothStatusChanged", new_state)

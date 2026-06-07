@@ -1,4 +1,5 @@
 import logging
+from os.path import basename
 from blueman.bluemantyping import ObjectPath
 
 from blueman.bluez.errors import BluezDBusException
@@ -22,10 +23,10 @@ class ObjectPush(Base):
     def send_file(self, file_path: str) -> None:
         def on_transfer_started(transfer_path: ObjectPath, props: dict[str, str]) -> None:
             logging.info(" ".join((self.get_object_path(), file_path, transfer_path)))
-            self.emit('transfer-started', transfer_path, props['Filename'])
+            self.emit('transfer-started', transfer_path, props.get('Filename', basename(file_path)))
 
         def on_transfer_error(error: BluezDBusException) -> None:
-            logging.error(f"{file_path} {error}")
+            logging.error("%s %s", file_path, error)
             self.emit('transfer-failed', error)
 
         param = GLib.Variant('(s)', (file_path,))

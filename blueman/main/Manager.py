@@ -8,7 +8,7 @@ from blueman.bluez.Adapter import Adapter
 from blueman.bluez.Device import Device
 from blueman.bluez.Manager import Manager
 from blueman.Constants import WEBSITE
-from blueman.Functions import *
+from blueman.Functions import bmexit, e_, launch, log_system_info, setup_icon_path
 from blueman.gui.manager.ManagerDeviceList import ManagerDeviceList
 from blueman.gui.manager.ManagerToolbar import ManagerToolbar
 from blueman.gui.manager.ManagerMenu import ManagerMenu
@@ -31,11 +31,19 @@ from blueman.plugins.ManagerPlugin import ManagerPlugin
 import gi
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
-from gi.repository import Gtk, Gio, Gdk, GLib
+from gi.repository import Gtk, Gio, Gdk, GLib, GLibUnix
 
 
 class Blueman(Gtk.Application):
     window: Gtk.ApplicationWindow | None
+    Config: Gio.Settings
+    builder: Builder
+    _infobar: Gtk.InfoBar
+    _infobar_bt: str
+    List: ManagerDeviceList
+    Toolbar: ManagerToolbar
+    Menu: ManagerMenu
+    Stats: ManagerStats
 
     def __init__(self) -> None:
         super().__init__(application_id="org.blueman.Manager")
@@ -47,7 +55,7 @@ class Blueman(Gtk.Application):
 
         log_system_info()
 
-        s = GLib.unix_signal_source_new(signal.SIGINT)
+        s = GLibUnix.signal_source_new(signal.SIGINT)
         s.set_callback(do_quit)
         s.attach()
 
@@ -136,10 +144,10 @@ class Blueman(Gtk.Application):
                 status = self.PowerManager.get_bluetooth_status()
                 action.change_state(GLib.Variant.new_boolean(status))
 
-            self.Toolbar._update_buttons(self.List.Adapter)
+            getattr(self.Toolbar, "_update_buttons")(self.List.Adapter)
 
     def on_dbus_name_appeared(self, _connection: Gio.DBusConnection, name: str, owner: str) -> None:
-        logging.info(f"{name} {owner}")
+        logging.info("%s %s", name, owner)
 
         sw = self.builder.get_widget("scrollview", Gtk.ScrolledWindow)
         # Disable overlay scrolling
@@ -180,7 +188,7 @@ class Blueman(Gtk.Application):
         d.run()
         d.destroy()
 
-        # FIXME ui can handle BlueZ start/stop but we should inform user
+        # UI already handles BlueZ start/stop; user notification could be improved.
         self.quit()
 
     def _on_bt_state_changed(self, action: Gio.SimpleAction, state_variant: GLib.Variant) -> None:
@@ -214,13 +222,13 @@ class Blueman(Gtk.Application):
     def register_action(self, name: str, callback: Callable[[Gio.SimpleAction, Any | None], None],
                         vtype: GLib.VariantType | None = None) -> None:
         if name in self.list_actions():
-            logging.error(f"{name} already exists")
+            logging.error("%s already exists", name)
         else:
             action = Gio.SimpleAction.new(name, vtype)
             action.connect("activate", callback)
             self.add_action(action)
 
-    def simple_action(self, action: Gio.SimpleAction, param: GLib.Variant | None) -> None:
+    def simple_action(self, action: Gio.SimpleAction, _param: GLib.Variant | None) -> None:
         match action.get_name():
             case "Quit":
                 self.quit()
@@ -255,9 +263,9 @@ class Blueman(Gtk.Application):
             case "preferences":
                 self.adapter_properties()
             case _ as name:
-                logging.error(f"Unknown action: {name}")
+                logging.error("Unknown action: %s", name)
 
-    def on_adapter_changed(self, lst: ManagerDeviceList, adapter: str) -> None:
+    def on_adapter_changed(self, _lst: ManagerDeviceList, adapter: str) -> None:
         if adapter is not None:
             self.List.populate_devices()
 
@@ -316,7 +324,7 @@ class Blueman(Gtk.Application):
             self._infobar.set_visible(False)
             return False
 
-        logging.debug(f"Response: {response_id}")
+        logging.debug("Response: %s", response_id)
         if response_id == Gtk.ResponseType.CLOSE:
             self._infobar_bt = ""
             info_bar.set_revealed(False)

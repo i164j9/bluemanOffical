@@ -197,8 +197,6 @@ class CellFade(AnimBase):
         if path is None:
             return False
 
-        # FIXME Use Gtk.render_background to render background.
-        # However it does not use the correct colors/gradient.
         for col in self.columns:
             bg_rect = self.tw.get_background_area(path, col)
             rect = self.tw.get_cell_area(path, col)
@@ -217,13 +215,24 @@ class CellFade(AnimBase):
 
         stylecontext = self.tw.get_style_context()
 
+        state = stylecontext.get_state() & ~Gtk.StateFlags.SELECTED
         if selected:
-            bg_color = stylecontext.get_background_color(Gtk.StateFlags.SELECTED)
-        else:
-            bg_color = stylecontext.get_background_color(Gtk.StateFlags.NORMAL)
+            state |= Gtk.StateFlags.SELECTED
 
-        cr.set_source_rgb(bg_color.red, bg_color.green, bg_color.blue)
+        stylecontext.save()
+        stylecontext.set_state(state)
+        cr.push_group()
+        for col in self.columns:
+            bg_rect = self.tw.get_background_area(path, col)
+            rect = self.tw.get_cell_area(path, col)
+            rect.y = bg_rect.y
+            rect.height = bg_rect.height
+
+            Gtk.render_background(stylecontext, cr, rect.x, rect.y, rect.width, rect.height)
+
+        cr.pop_group_to_source()
         cr.paint_with_alpha(1.0 - self.get_state())
+        stylecontext.restore()
 
         return False
 

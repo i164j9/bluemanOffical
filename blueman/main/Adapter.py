@@ -5,16 +5,17 @@ import signal
 from typing import TypedDict, Any
 from blueman.bluemantyping import ObjectPath
 
-from blueman.Functions import *
+from blueman.Functions import adapter_path_to_name, bmexit, check_bluetooth_status, log_system_info, setup_icon_path
 from blueman.bluez.Manager import Manager
 from blueman.bluez.Adapter import Adapter
 from blueman.main.Builder import Builder
+from blueman.gui.CommonUi import ErrorDialog
 
 import gi
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
 gi.require_version("Pango", "1.0")
-from gi.repository import Gtk, Gio, Gdk, GLib
+from gi.repository import Gtk, Gio, Gdk, GLibUnix
 from gi.repository import Pango
 
 
@@ -28,6 +29,17 @@ class Tab(TypedDict):
     name_entry: Gtk.Entry
 
 
+def get_adapter_service_vanished_dialog_text() -> tuple[str, str]:
+    return (
+        _("<b>Bluetooth adapter manager lost its connection to the Bluetooth service.</b>"),
+        _("The adapter manager window will now close."),
+    )
+
+
+def discoverable_timeout_to_minutes(timeout: int) -> float:
+    return timeout / 60
+
+
 class BluemanAdapters(Gtk.Application):
     def __init__(self, selected_hci_dev: str | None, socket_id: int | None) -> None:
         super().__init__(application_id="org.blueman.Adapters")
@@ -38,7 +50,7 @@ class BluemanAdapters(Gtk.Application):
 
         log_system_info()
 
-        s = GLib.unix_signal_source_new(signal.SIGINT)
+        s = GLibUnix.signal_source_new(signal.SIGINT)
         s.set_callback(do_quit)
         s.attach()
 
@@ -133,11 +145,16 @@ class BluemanAdapters(Gtk.Application):
         self.remove_from_notebook(self._adapters[hci_dev])
 
     def _on_dbus_name_appeared(self, _connection: Gio.DBusConnection, name: str, owner: str) -> None:
-        logging.info(f"{name} {owner}")
+        logging.info("%s %s", name, owner)
 
     def _on_dbus_name_vanished(self, _connection: Gio.DBusConnection, name: str) -> None:
         logging.info(name)
-        # FIXME: show error dialog and exit
+        if self.window is not None:
+            primary, secondary = get_adapter_service_vanished_dialog_text()
+            dialog = ErrorDialog(primary, secondary, parent=self.window, modal=True)
+            dialog.run()
+            dialog.destroy()
+        self.quit()
 
     def build_adapter_tab(self, adapter: Adapter) -> Tab:
         def on_hidden_toggle(radio: Gtk.RadioButton) -> None:
@@ -172,7 +189,7 @@ class BluemanAdapters(Gtk.Application):
 
         def on_scale_value_changed(scale: Gtk.Scale) -> None:
             val = scale.get_value()
-            logging.info(f"value: {val}")
+            logging.info("value: %s", val)
             if val == 0 and adapter['Discoverable']:
                 always_radio.props.active = True
             timeout = int(val * 60)
@@ -195,7 +212,7 @@ class BluemanAdapters(Gtk.Application):
 
         if adapter['Discoverable'] and adapter['DiscoverableTimeout'] > 0:
             temporary_radio.set_active(True)
-            hscale.set_value(adapter['DiscoverableTimeout'])
+            hscale.set_value(discoverable_timeout_to_minutes(adapter['DiscoverableTimeout']))
             hscale.set_sensitive(True)
         elif adapter['Discoverable'] and adapter['DiscoverableTimeout'] == 0:
             always_radio.set_active(True)

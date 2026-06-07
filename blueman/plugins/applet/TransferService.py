@@ -12,6 +12,7 @@ from blueman.bluez.obex.AgentManager import AgentManager
 from blueman.bluez.obex.Manager import Manager
 from blueman.bluez.obex.Transfer import Transfer
 from blueman.bluez.obex.Session import Session
+from blueman.bluez.errors import BluezDBusException
 from blueman.Functions import launch
 from blueman.gui.Notification import Notification, _NotificationBubble, _NotificationDialog
 from blueman.main.Applet import BluemanApplet
@@ -62,9 +63,15 @@ class Agent(DbusService):
         self._config = Gio.Settings(schema_id="org.blueman.transfer")
 
         self._allowed_devices: list[str] = []
+        self._allowed_device_timeouts: set[int] = set()
         self._notification: NotificationType | None = None
         self._pending_transfer: Optional[PendingTransferDict] = None
         self.transfers: dict[ObjectPath, TransferDict] = {}
+
+    def _close_notification(self) -> None:
+        if self._notification:
+            self._notification.close()
+            self._notification = None
 
     def register_at_manager(self) -> None:
         AgentManager().register_agent(self.__agent_path)
@@ -73,33 +80,46 @@ class Agent(DbusService):
         AgentManager().unregister_agent(self.__agent_path)
 
     def _release(self) -> None:
-        raise Exception(self.__agent_path + " was released unexpectedly")
+        raise RuntimeError(self.__agent_path + " was released unexpectedly")
 
     def _authorize_push(self, transfer_path: ObjectPath, ok: Callable[[str], None],
                         err: Callable[[ObexErrorRejected], None]) -> None:
+        pending_transfer: PendingTransferDict
+
         def on_action(action: str) -> None:
-            logging.info(f"Action {action}")
+            logging.info("Action %s", action)
+            self._close_notification()
 
             if action == "accept":
-                assert self._pending_transfer
-                self.transfers[self._pending_transfer['transfer_path']] = {
-                    'path': self._pending_transfer['root'] / self._pending_transfer['filename'],
-                    'size': self._pending_transfer['size'],
-                    'name': self._pending_transfer['name']
+                address = pending_transfer['address']
+                self.transfers[pending_transfer['transfer_path']] = {
+                    'path': pending_transfer['root'] / pending_transfer['filename'],
+                    'size': pending_transfer['size'],
+                    'name': pending_transfer['name']
                 }
 
-                ok(self.transfers[self._pending_transfer['transfer_path']]['path'].as_posix())
+                ok(self.transfers[pending_transfer['transfer_path']]['path'].as_posix())
 
-                self._allowed_devices.append(self._pending_transfer['address'])
+                self._allowed_devices.append(address)
+
+                source_id: int | None = None
 
                 def _remove() -> bool:
-                    assert self._pending_transfer is not None  # https://github.com/python/mypy/issues/2608
-                    self._allowed_devices.remove(self._pending_transfer['address'])
+                    if source_id is not None:
+                        self._allowed_device_timeouts.discard(source_id)
+                    try:
+                        self._allowed_devices.remove(address)
+                    except ValueError:
+                        pass
                     return False
 
-                GLib.timeout_add(60000, _remove)
+                source_id = GLib.timeout_add(60000, _remove)
+                self._allowed_device_timeouts.add(source_id)
             else:
                 err(ObexErrorRejected("Rejected"))
+
+            if self._pending_transfer == pending_transfer:
+                self._pending_transfer = None
 
         transfer = Transfer(obj_path=transfer_path)
         session = Session(obj_path=transfer.session)
@@ -114,13 +134,15 @@ class Agent(DbusService):
             assert device is not None
             name = device.display_name
             trusted = device["Trusted"]
-        except Exception as e:
+        except (AssertionError, BluezDBusException, GLib.Error) as e:
             logging.exception(e)
             name = address
             trusted = False
 
-        self._pending_transfer = {'transfer_path': transfer_path, 'address': address, 'root': root,
-                                  'filename': filename, 'size': size, 'name': name}
+        pending_transfer = {'transfer_path': transfer_path, 'address': address, 'root': root,
+                    'filename': filename, 'size': size, 'name': name}
+        self._pending_transfer = pending_transfer
+        self._close_notification()
 
         # This device was neither allowed nor is it trusted -> ask for confirmation
         if address not in self._allowed_devices and not (self._config['opp-accept'] and trusted):
@@ -148,9 +170,17 @@ class Agent(DbusService):
             on_action("accept")
 
     def _cancel(self) -> None:
-        if self._notification:
-            self._notification.close()
+        self._pending_transfer = None
+        self._close_notification()
         raise ObexErrorCanceled("Canceled")
+
+    def destroy(self) -> None:
+        for source_id in self._allowed_device_timeouts:
+            GLib.source_remove(source_id)
+        self._allowed_device_timeouts.clear()
+        self._allowed_devices.clear()
+        self._pending_transfer = None
+        self._close_notification()
 
 
 class TransferService(AppletPlugin):
@@ -167,9 +197,14 @@ class TransferService(AppletPlugin):
     _notification = None
     _handlerids: list[int] = []
 
+    def _close_notification(self) -> None:
+        if self._notification:
+            self._notification.close()
+            self._notification = None
+
     def on_load(self) -> None:
         def on_reset(_action: str) -> None:
-            self._notification = None
+            self._close_notification()
             self._config.reset('shared-path')
             logging.info('Reset share path')
 
@@ -181,6 +216,7 @@ class TransferService(AppletPlugin):
             text = _('Configured directory for incoming files does not exist')
             secondary_text = _('Please make sure that directory "<b>%s</b>" exists or '
                                'configure it with blueman-services. Until then the default "%s" will be used')
+            self._close_notification()
             self._notification = Notification(text, secondary_text % (self._config["shared-path"], share_path),
                                               icon_name='blueman', timeout=30000,
                                               actions=[('reset', 'Reset to default')], actions_cb=on_reset)
@@ -192,6 +228,7 @@ class TransferService(AppletPlugin):
         if self._watch:
             Gio.bus_unwatch_name(self._watch)
 
+        self._close_notification()
         self._unregister_agent()
 
     def _make_share_path(self) -> tuple[Path, bool]:
@@ -205,7 +242,7 @@ class TransferService(AppletPlugin):
         elif not config_path.is_dir():
             path = default_path
             error = True
-            logging.warning(f"Invalid shared-path {config_path}")
+            logging.warning("Invalid shared-path %s", config_path)
         else:
             path = config_path
 
@@ -227,12 +264,13 @@ class TransferService(AppletPlugin):
 
     def _unregister_agent(self) -> None:
         if self._agent:
+            self._agent.destroy()
             self._agent.unregister_from_manager()
             self._agent.unregister()
             self._agent = None
 
     def _on_dbus_name_appeared(self, _connection: Gio.DBusConnection, name: str, owner: str) -> None:
-        logging.info(f"{name} {owner}")
+        logging.info("%s %s", name, owner)
 
         try:
             self._manager = Manager()
@@ -247,7 +285,7 @@ class TransferService(AppletPlugin):
         self._register_agent()
 
     def _on_dbus_name_vanished(self, _connection: Gio.DBusConnection, name: str) -> None:
-        logging.info(f"{name} not running or was stopped")
+        logging.info("%s not running or was stopped", name)
 
         if self._manager:
             for sigid in self._handlerids:
@@ -256,8 +294,11 @@ class TransferService(AppletPlugin):
             self._handlerids = []
 
         if self._agent:
+            self._agent.destroy()
             self._agent.unregister()
             self._agent = None
+
+        self._close_notification()
 
     def _on_transfer_started(self, _manager: Manager, transfer_path: ObjectPath) -> None:
         if not self._agent or transfer_path not in self._agent.transfers:
@@ -290,13 +331,13 @@ class TransferService(AppletPlugin):
         attributes = self._agent.transfers[transfer_path]
 
         src = attributes['path']
-        dest_dir, ignored = self._make_share_path()
+        dest_dir, _ignored = self._make_share_path()
         filename = src.name
 
         if dest_dir.joinpath(filename).exists():
             now = datetime.now()
             filename = f"{now.strftime('%Y%m%d%H%M%S')}_{filename}"
-            logging.info(f"Destination file exists, renaming to: {filename}")
+            logging.info("Destination file exists, renaming to: %s", filename)
 
         dest = dest_dir.joinpath(filename)
         try:
@@ -306,6 +347,7 @@ class TransferService(AppletPlugin):
             success = False
 
         if success:
+            self._close_notification()
             self._notification = Notification(_("File received"),
                                               _("File %(0)s from %(1)s successfully received") % {
                                                   "0": "<b>" + escape(filename) + "</b>",
@@ -314,6 +356,7 @@ class TransferService(AppletPlugin):
             self._add_open(self._notification, _("Open"), dest)
             self._notification.show()
         elif not success:
+            self._close_notification()
             n = Notification(
                 _("Transfer failed"),
                 _("Transfer of file %(0)s failed") % {
@@ -334,7 +377,8 @@ class TransferService(AppletPlugin):
         if self._silent_transfers == 0:
             return
 
-        share_path, ignored = self._make_share_path()
+        share_path, _ignored = self._make_share_path()
+        self._close_notification()
         if self._normal_transfers == 0:
             self._notification = Notification(_("Files received"),
                                               ngettext("Received %(files)d file in the background",

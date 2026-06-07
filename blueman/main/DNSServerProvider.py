@@ -2,6 +2,7 @@ import re
 import socket
 from ipaddress import IPv4Address, ip_address
 from collections.abc import Generator
+from typing import cast
 
 from gi.repository import GObject, Gio, GLib
 
@@ -15,8 +16,16 @@ class DNSServerProvider(GObject.GObject):
 
     __gsignals__: GSignals = {"changed": (GObject.SignalFlags.NO_HOOKS, None, ())}
 
+    _DBUS_CALL_FLAGS_NONE = cast(Gio.DBusCallFlags, 0)
+    _DBUS_SIGNAL_FLAGS_NONE = cast(Gio.DBusSignalFlags, 0)
+    _FILE_MONITOR_FLAGS_NONE = cast(Gio.FileMonitorFlags, 0)
+
     def __init__(self) -> None:
         super().__init__()
+        self._bus: Gio.DBusConnection | None = None
+        self._resolved_subscription_id: int | None = None
+        self._monitor: Gio.FileMonitor | None = None
+        self._monitor_handler_id: int | None = None
         self._subscribe_systemd_resolved()
         self._subscribe_resolver()
 
@@ -41,7 +50,7 @@ class DNSServerProvider(GObject.GObject):
             data = manager_proxy.call_sync(
                 "org.freedesktop.DBus.Properties.Get",
                 GLib.Variant("(ss)", (cls._RESOLVED_MANAGER_INTERFACE, "DNS")),
-                Gio.DBusCallFlags.NONE,
+                cls._DBUS_CALL_FLAGS_NONE,
                 -1,
                 None
             ).unpack()[0]
@@ -49,14 +58,14 @@ class DNSServerProvider(GObject.GObject):
             return
 
         for (interface, address_family, address) in data:
-            if address_family != socket.AF_INET.value:
+            if address_family != socket.AF_INET:
                 continue
 
             if interface != 0:
                 object_path = manager_proxy.call_sync(
                     "GetLink",
                     GLib.Variant("(i)", (interface,)),
-                    Gio.DBusCallFlags.NONE,
+                    cls._DBUS_CALL_FLAGS_NONE,
                     -1,
                     None
                 ).unpack()[0]
@@ -68,7 +77,7 @@ class DNSServerProvider(GObject.GObject):
                     "Get",
                     GLib.Variant("(ss)", ("org.freedesktop.resolve1.Link", "DefaultRoute")),
                     None,
-                    Gio.DBusCallFlags.NONE,
+                    cls._DBUS_CALL_FLAGS_NONE,
                     -1,
                     None
                 ).unpack()[0]:
@@ -80,7 +89,7 @@ class DNSServerProvider(GObject.GObject):
 
     @classmethod
     def _get_servers_from_resolver(cls) -> Generator[IPv4Address, None, None]:
-        with open(cls.RESOLVER_PATH) as f:
+        with open(cls.RESOLVER_PATH, encoding="utf-8") as f:
             for line in f:
                 match = re.search(r"^nameserver\s+((?:\d{1,3}\.){3}\d{1,3}$)", line)
                 if match:
@@ -95,16 +104,30 @@ class DNSServerProvider(GObject.GObject):
             _signal_name: str,
             param: GLib.Variant,
         ) -> None:
-            interface_name, changed_properties, invalidated_propeties = param.unpack()
+            interface_name, changed_properties, _invalidated_properties = param.unpack()
             if interface_name == self._RESOLVED_MANAGER_INTERFACE and "DNS" in changed_properties:
                 self.emit("changed")
 
         self._bus = Gio.bus_get_sync(Gio.BusType.SYSTEM)
 
-        self._bus.signal_subscribe(
+        self._resolved_subscription_id = self._bus.signal_subscribe(
             self._RESOLVED_NAME, "org.freedesktop.DBus.Properties", "PropertiesChanged",
-            "/org/freedesktop/resolve1", None, Gio.DBusSignalFlags.NONE, on_signal)
+            "/org/freedesktop/resolve1", None, self._DBUS_SIGNAL_FLAGS_NONE, on_signal)
 
     def _subscribe_resolver(self) -> None:
-        self._monitor = Gio.File.new_for_path(self.RESOLVER_PATH).monitor_file(Gio.FileMonitorFlags.NONE)
-        self._monitor.connect("changed", lambda *args: self.emit("changed"))
+        self._monitor = Gio.File.new_for_path(self.RESOLVER_PATH).monitor_file(self._FILE_MONITOR_FLAGS_NONE)
+        self._monitor_handler_id = self._monitor.connect("changed", lambda *args: self.emit("changed"))
+
+    def destroy(self) -> None:
+        if self._monitor is not None:
+            if self._monitor_handler_id is not None:
+                self._monitor.disconnect(self._monitor_handler_id)
+                self._monitor_handler_id = None
+            self._monitor.cancel()
+            self._monitor = None
+
+        if self._bus is not None and self._resolved_subscription_id is not None:
+            self._bus.signal_unsubscribe(self._resolved_subscription_id)
+            self._resolved_subscription_id = None
+
+        self._bus = None

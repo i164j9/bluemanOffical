@@ -6,7 +6,7 @@ import logging
 from argparse import Namespace
 from gettext import ngettext
 from collections.abc import Iterable, Sequence
-from typing import Any
+from typing import Any, cast
 
 from blueman.bluez.Device import Device, AnyDevice
 from blueman.bluez.errors import BluezDBusException, DBusNoSuchAdapterError
@@ -29,6 +29,9 @@ import gi
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
 from gi.repository import Gdk, Gtk, GObject, GLib, Gio
+
+
+NO_FILE_QUERY_INFO_FLAGS = cast(Gio.FileQueryInfoFlags, 0)
 
 
 class SendTo:
@@ -107,7 +110,7 @@ class SendTo:
             self.__cleanup()
 
     def __on_manager_signal(self, _manager: Manager, object_path: ObjectPath, signal_name: str) -> None:
-        logging.debug(f"{object_path} {signal_name}")
+        logging.debug("%s %s", object_path, signal_name)
         match signal_name:
             case "adapter-added":
                 self._device_selector.add_adapter(object_path)
@@ -261,13 +264,13 @@ class Sender(Gtk.Dialog):
             parsed_file = Gio.File.parse_name(file_name)
 
             if not parsed_file.query_exists():
-                logging.info(f"Skipping non existing file {parsed_file.get_path()}")
+                logging.info("Skipping non existing file %s", parsed_file.get_path())
                 continue
 
-            file_info = parsed_file.query_info("standard::*", Gio.FileQueryInfoFlags.NONE)
+            file_info = parsed_file.query_info("standard::*", NO_FILE_QUERY_INFO_FLAGS)
 
             if file_info.get_file_type() == Gio.FileType.DIRECTORY:
-                logging.info(f"Skipping directory {parsed_file.get_path()}")
+                logging.info("Skipping directory %s", parsed_file.get_path())
                 continue
 
             self.files.append(parsed_file)
@@ -282,8 +285,9 @@ class Sender(Gtk.Dialog):
             self.obex_manager.connect_signal('session-added', self.on_session_added)
             self.obex_manager.connect_signal('session-removed', self.on_session_removed)
         except GLib.Error as e:
-            if 'StartServiceByName' in e.message:
-                logging.debug(e.message)
+            message = str(e)
+            if 'StartServiceByName' in message:
+                logging.debug("%s", message)
                 parent = self.get_toplevel()
                 assert isinstance(parent, Gtk.Container)
                 d = ErrorDialog(_("obexd not available"), _("Failed to autostart obex service. Make sure the obex "
@@ -301,22 +305,51 @@ class Sender(Gtk.Dialog):
 
         self.client.connect('session-failed', self.on_session_failed)
 
-        logging.info(f"Sending to {device['Address']}")
+        logging.info("Sending to %s", device['Address'])
         self.l_dest.props.label = device.display_name
+
+        self.show()
 
         # Stop discovery if discovering and let adapter settle for a second
         if self.adapter["Discovering"]:
             self.adapter.stop_discovery()
-            time.sleep(1)
+            GLib.timeout_add_seconds(1, self._create_session_after_discovery)
+        else:
+            self.create_session()
 
+    def _create_session_after_discovery(self) -> bool:
         self.create_session()
-
-        self.show()
+        return False
 
     def create_session(self) -> None:
         self.client.create_session(self.device['Address'], self.adapter["Address"])
 
+    def _clear_object_push(self, session_path: ObjectPath | None = None) -> bool:
+        if self.object_push is None:
+            return False
+
+        current_session_path = self.object_push.get_session_path()
+        if session_path is not None and current_session_path != session_path:
+            return False
+
+        for handlerid in self.object_push_handlers:
+            self.object_push.disconnect(handlerid)
+
+        self.object_push_handlers = []
+        self.object_push = None
+        return True
+
+    def _reset_transfer_state(self) -> None:
+        if self.transferred:
+            self.total_transferred = max(0, self.total_transferred - self.transferred)
+
+        self.transfer = None
+        self.transferred = 0
+        self._last_bytes = 0
+        self.speed.reset()
+
     def on_cancel(self, button: Gtk.Button | None) -> None:
+        self.cancelling = True
         self.pb.props.text = _("Cancelling")
         if button:
             button.props.sensitive = False
@@ -379,6 +412,8 @@ class Sender(Gtk.Dialog):
     def on_transfer_completed(self, _transfer: Transfer) -> None:
         del self.files[-1]
         self.transfer = None
+        self.transferred = 0
+        self._last_bytes = 0
 
         self.process_queue()
 
@@ -418,7 +453,7 @@ class Sender(Gtk.Dialog):
                 if resp == Gtk.ResponseType.CANCEL:
                     self.on_cancel(None)
                 elif resp == Gtk.ResponseType.NO:
-                    finfo = self.files[-1].query_info('standard::*', Gio.FileQueryInfoFlags.NONE)
+                    finfo = self.files[-1].query_info('standard::*', NO_FILE_QUERY_INFO_FLAGS)
                     self.total_bytes -= finfo.get_size()
                     self.total_transferred -= self.transferred
                     self.transferred = 0
@@ -441,17 +476,24 @@ class Sender(Gtk.Dialog):
             self.error_dialog = d
 
     def on_session_added(self, _manager: ObexManager, session_path: ObjectPath) -> None:
+        self._clear_object_push()
         self.object_push = ObjectPush(obj_path=session_path)
         self.object_push_handlers.append(self.object_push.connect("transfer-started", self.on_transfer_started))
         self.object_push_handlers.append(self.object_push.connect("transfer-failed", self.on_transfer_failed))
         self.process_queue()
 
     def on_session_removed(self, _manager: ObexManager, session_path: ObjectPath) -> None:
-        logging.debug(f"Session removed: {session_path}")
-        if self.object_push:
-            for handlerid in self.object_push_handlers:
-                self.object_push.disconnect(handlerid)
-            self.object_push = None
+        logging.debug("Session removed: %s", session_path)
+        if not self._clear_object_push(session_path):
+            return
+
+        self._reset_transfer_state()
+
+        if self.cancelling or self.error_dialog is not None or not self.files:
+            return
+
+        self.pb.props.text = _("Connecting")
+        self.create_session()
 
     def on_session_failed(self, _client: Client, msg: BluezDBusException) -> None:
         parent = self.get_toplevel()

@@ -12,8 +12,8 @@ import gi
 gi.require_version('Gdk', '3.0')
 try:
     gi.require_version('GdkX11', '3.0')
-except ValueError:
-    raise ImportError("Couldn't find required namespace GdkX11")
+except ValueError as exc:
+    raise ImportError("Couldn't find required namespace GdkX11") from exc
 
 from gi.repository import Gdk
 from gi.repository import GdkX11
@@ -28,8 +28,12 @@ class GameControllerWakelock(AppletPlugin):
     __author__ = "bwRavencl"
     __icon__ = "input-gaming-symbolic"
 
-    def on_load(self) -> None:
+    def __init__(self, parent: Any):
+        super().__init__(parent)
         self.wake_lock = 0
+        self.root_window_id = ""
+
+    def on_load(self) -> None:
         screen = Gdk.Screen.get_default()
         assert screen is not None
         window = screen.get_root_window()
@@ -64,7 +68,7 @@ class GameControllerWakelock(AppletPlugin):
                 if ret:
                     self.wake_lock -= 1
                 else:
-                    logging.error(f"{action} failed")
+                    logging.error("%s failed", action)
 
         elif action == "suspend":
             if self.wake_lock >= 1:
@@ -74,6 +78,6 @@ class GameControllerWakelock(AppletPlugin):
                 if ret:
                     self.wake_lock += 1
                 else:
-                    logging.error(f"{action} failed")
+                    logging.error("%s failed", action)
 
-        logging.info(f"Number of locks: {self.wake_lock}")
+        logging.info("Number of locks: %s", self.wake_lock)
