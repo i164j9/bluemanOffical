@@ -47,7 +47,7 @@ class Base(GObject.Object, metaclass=BaseMeta):
     def connect_signal(
         self: _TBase,
         signal_name: str,
-        handler: Callable[[_TBase, str, object, str], Any],
+        handler: Callable[[_TBase, str, object, ObjectPath], Any],
         *args: object,
     ) -> int:
         return cast(int, cast(Any, GObject.GObject.connect)(self, signal_name, handler, *args))

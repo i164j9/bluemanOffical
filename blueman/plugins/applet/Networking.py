@@ -75,10 +75,14 @@ class Networking(AppletPlugin):
 
         self._registered = {}
         if self._dns_server_provider is not None:
-            self._dns_server_provider.disconnect(self._dns_server_provider_handler_id)
+            if self._dns_server_provider_handler_id is not None:
+                self._dns_server_provider.disconnect(self._dns_server_provider_handler_id)
+                self._dns_server_provider_handler_id = None
             self._dns_server_provider.destroy()
             self._dns_server_provider = None
-        self.Config.disconnect(self._config_handler_id)
+        if self._config_handler_id is not None:
+            self.Config.disconnect(self._config_handler_id)
+            self._config_handler_id = None
         del self.Config
 
     def on_adapter_added(self, path: str) -> None:

@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 from collections.abc import Callable
 from blueman.bluemantyping import BtAddress
 
@@ -19,6 +19,9 @@ from gi.repository import Gtk
 
 if TYPE_CHECKING:
     from blueman.main.Manager import Blueman
+
+
+CairoSurface = Any
 
 
 def get_connect_handler(
@@ -55,13 +58,19 @@ class Services(ManagerPlugin, MenuItemsProvider):
         target = self.icon_theme.load_surface(icon_name, size, scale, window, Gtk.IconLookupFlags.FORCE_SIZE)
         bmx = self.icon_theme.load_surface("blueman-x", size, scale, window, Gtk.IconLookupFlags.FORCE_SIZE)
 
-        x = target.get_width() - bmx.get_width()
-        y = target.get_height() - bmx.get_height()
-        context = getattr(cairo, "Context")(target)
-        context.set_source_surface(bmx, x, y)
+        assert target is not None
+        assert bmx is not None
+
+        target_surface = cast(CairoSurface, target)
+        bmx_surface = cast(CairoSurface, bmx)
+
+        x = target_surface.get_width() - bmx_surface.get_width()
+        y = target_surface.get_height() - bmx_surface.get_height()
+        context = getattr(cairo, "Context")(target_surface)
+        context.set_source_surface(bmx_surface, x, y)
         context.paint()
 
-        return target
+        return target_surface
 
     def on_request_menu_items(
         self,

@@ -3,6 +3,7 @@ import logging
 import os
 import subprocess
 from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 import _blueman
 from gi.repository import Gio, GLib
@@ -12,6 +13,11 @@ from blueman.Service import Service, Instance
 from blueman.bluez.Device import Device
 from blueman.main.DBusProxies import Mechanism
 from blueman.Constants import RFCOMM_WATCHER_PATH
+
+if TYPE_CHECKING:
+    from _blueman import RFCOMMError as _RFCOMMErrorType
+else:
+    _RFCOMMErrorType = Any
 
 
 create_rfcomm_device = getattr(_blueman, "create_rfcomm_device")
@@ -88,7 +94,7 @@ class SerialService(Service):
     def connect(
         self,
         reply_handler: Callable[[int], None] | None = None,
-        error_handler: Callable[[Exception], None] | None = None
+        error_handler: Callable[[_RFCOMMErrorType], None] | None = None
     ) -> bool:
         # We expect this service to have a reserved UUID
         uuid = self.short_uuid

@@ -5,7 +5,7 @@ from collections.abc import Callable
 from gi.repository import GObject, GLib
 from gi.repository import Gio
 
-from blueman.bluemantyping import GSignals
+from blueman.bluemantyping import GSignals, ObjectPath
 
 
 _TAnyBase = TypeVar("_TAnyBase", bound="AnyBase")
@@ -19,7 +19,7 @@ class AnyBase(GObject.GObject):
     def connect_signal(
         self: _TAnyBase,
         signal_name: str,
-        handler: Callable[[_TAnyBase, str, object, str], Any],
+        handler: Callable[[_TAnyBase, str, object, ObjectPath], Any],
         *args: object,
     ) -> int:
         return cast(int, GObject.GObject.connect(self, signal_name, handler, *args))

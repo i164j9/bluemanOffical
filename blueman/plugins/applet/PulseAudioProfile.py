@@ -34,9 +34,10 @@ class AudioProfiles(AppletPlugin):
 
         self._menu = self.parent.Plugins.Menu
 
-        self._pa = PulseAudioUtils()
-        self._pa_event_handler_id = self._pa.connect("event", self.on_pa_event)
-        self._pa_connected_handler_id = self._pa.connect("connected", self.on_pa_ready)
+        pa = PulseAudioUtils()
+        self._pa = pa
+        self._pa_event_handler_id = pa.connect("event", self.on_pa_event)
+        self._pa_connected_handler_id = pa.connect("connected", self.on_pa_ready)
 
     def generate_menu(self) -> None:
         devices = self.parent.Manager.get_devices()

@@ -1,19 +1,20 @@
 from gettext import gettext as _
 from typing import cast
 
+import gi
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+from gi.repository import Gtk  # pyright: ignore[reportMissingModuleSource]  # pylint: disable=wrong-import-position
+
 from blueman.Functions import launch
 from blueman.main.DBusProxies import ManagerService
 from blueman.plugins.AppletPlugin import AppletPlugin
 from blueman.gui.CommonUi import show_about_dialog
 from blueman.gui.applet.PluginDialog import PluginDialog
-
-import gi
+from blueman.plugins.applet.Menu import MenuItem
 
 from blueman.plugins.applet.PowerManager import PowerManager, PowerStateListener
-
-gi.require_version("Gtk", "3.0")
-gi.require_version("Gdk", "3.0")
-from gi.repository import Gtk
 
 
 class StandardItems(AppletPlugin, PowerStateListener):
@@ -37,9 +38,9 @@ class StandardItems(AppletPlugin, PowerStateListener):
     }
 
     _plugin_window: Gtk.ApplicationWindow | None
-    send: Gtk.MenuItem
-    devices: Gtk.MenuItem
-    adapters: Gtk.MenuItem
+    send: MenuItem
+    devices: MenuItem
+    adapters: MenuItem
 
     def on_load(self) -> None:
         self._plugin_window: Gtk.ApplicationWindow | None = None
