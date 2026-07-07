@@ -78,7 +78,7 @@ class Base(GObject.Object, metaclass=BaseMeta):
                             invalidated_properties: list[str]) -> None:
         changed = changed_properties.unpack()
         object_path = self.get_object_path()
-        logging.debug(f"{object_path} {changed} {invalidated_properties} {self}")
+        logging.debug("%s %s %s %s", object_path, changed, invalidated_properties, self)
 
         for key in list(changed) + invalidated_properties:
             self.emit("property-changed", key, changed.get(key, None), object_path)
@@ -104,7 +104,12 @@ class Base(GObject.Object, metaclass=BaseMeta):
                 if error:
                     error(parse_dbus_error(e))
                 else:
-                    logging.error(f"Unhandled error for {self.__proxy.get_interface_name()}.{method}", exc_info=True)
+                    logging.error(
+                        "Unhandled error for %s.%s",
+                        self.__proxy.get_interface_name(),
+                        method,
+                        exc_info=True,
+                    )
 
         self.__proxy.call(method, param, DBUS_CALL_FLAGS_NONE, DBUS_TIMEOUT, None,
                           callback, reply_handler, error_handler)
@@ -119,13 +124,13 @@ class Base(GObject.Object, metaclass=BaseMeta):
                 None)
             return prop.unpack()[0]
         except GLib.Error as e:
-            property = self.__proxy.get_cached_property(name)
-            if property is not None:
-                return property.unpack()
+            cached_property = self.__proxy.get_cached_property(name)
+            if cached_property is not None:
+                return cached_property.unpack()
             elif name in self.__fallback:
                 return self.__fallback[name]
             else:
-                raise parse_dbus_error(e)
+                raise parse_dbus_error(e) from e
 
     def set(self, name: str, value: str | int | bool) -> None:
         v = GLib.Variant(self.__variant_map[type(value)], value)

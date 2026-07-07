@@ -4,7 +4,7 @@ set -euo pipefail
 
 usage() {
     cat <<'EOF'
-Usage: ./install-kali.sh [--prefix PREFIX] [--run-tests] [--refresh-autotools] [--help]
+Usage: ./install-kali.sh [--prefix PREFIX] [--run-tests] [--refresh-autotools] [--clean-build] [--help]
 
 Install Blueman from the current checkout on Kali or another Debian-family
 system.
@@ -13,6 +13,7 @@ Options:
     --prefix PREFIX       Install prefix passed to configure (default: /usr/local)
     --run-tests           Run pytest after building and before installation
     --refresh-autotools   Rebuild configure/Makefile.in files with ./autogen.sh
+    --clean-build         Run make distclean or make clean in the staged tree before rebuilding
     --help                Show this help text
 EOF
 }
@@ -20,6 +21,7 @@ EOF
 prefix="/usr/local"
 run_tests=false
 refresh_autotools=false
+clean_build=false
 stage_root=""
 
 cleanup_stage() {
@@ -53,6 +55,9 @@ while (($# > 0)); do
             ;;
         --refresh-autotools)
             refresh_autotools=true
+            ;;
+        --clean-build)
+            clean_build=true
             ;;
         -h|--help)
             usage
@@ -141,6 +146,18 @@ tar -C "$repo_root" \
     -cf - . | tar -C "$stage_src" -xf -
 
 cd "$stage_src"
+
+if [[ "$clean_build" == true ]]; then
+    if [[ -f Makefile ]]; then
+        echo "Cleaning copied build artifacts in staged source tree..."
+        if ! make distclean; then
+            echo "make distclean failed; retrying with make clean..."
+            make clean
+        fi
+    else
+        echo "No Makefile found in staged source tree; skipping make-based clean step."
+    fi
+fi
 
 configure_args=(--enable-maintainer-mode "--prefix=$prefix")
 

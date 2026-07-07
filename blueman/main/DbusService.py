@@ -150,7 +150,7 @@ class DbusService:
                 method(*(args + (ok, lambda exception: self._return_dbus_error(invocation, exception))))
             else:
                 ok(method(*args))
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             self._return_dbus_error(invocation, e)
 
     def _get_property(self, _connection: Gio.DBusConnection, _sender: str, path: str, interface_name: str,

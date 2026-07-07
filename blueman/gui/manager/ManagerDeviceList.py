@@ -14,13 +14,13 @@ import cairo
 import _blueman
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk  # pylint: disable=wrong-import-position
-from gi.repository import GLib  # pylint: disable=wrong-import-position
-from gi.repository import GObject  # pylint: disable=wrong-import-position
-from gi.repository import Gio  # pylint: disable=wrong-import-position
-from gi.repository import Gdk  # pylint: disable=wrong-import-position
-from gi.repository import GdkPixbuf  # pylint: disable=wrong-import-position
-from gi.repository import Pango  # pylint: disable=wrong-import-position
+from gi.repository import Gtk  # pyright: ignore[reportMissingModuleSource]  # pylint: disable=wrong-import-position
+from gi.repository import GLib  # pyright: ignore[reportMissingModuleSource]  # pylint: disable=wrong-import-position
+from gi.repository import GObject  # pyright: ignore[reportMissingModuleSource]  # pylint: disable=wrong-import-position
+from gi.repository import Gio  # pyright: ignore[reportMissingModuleSource]  # pylint: disable=wrong-import-position
+from gi.repository import Gdk  # pyright: ignore[reportMissingModuleSource]  # pylint: disable=wrong-import-position
+from gi.repository import GdkPixbuf  # pyright: ignore[reportMissingModuleSource]  # pylint: disable=wrong-import-position
+from gi.repository import Pango  # pyright: ignore[reportMissingModuleSource]  # pylint: disable=wrong-import-position
 
 from blueman.bluemantyping import ObjectPath, BtAddress
 from blueman.bluez.Adapter import Adapter

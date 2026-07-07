@@ -60,12 +60,12 @@ class SerialService(Service):
         port: int
     ) -> None:
         if event_type == Gio.FileMonitorEvent.DELETED:
-            logging.info(f'{file.get_path()} got deleted')
+            logging.info("%s got deleted", file.get_path())
             if port in self._handlerids:
                 handler_id = self._handlerids.pop(port)
                 monitor.disconnect(handler_id)
             else:
-                logging.warning(f"No handler id for {port}")
+                logging.warning("No handler id for %s", port)
         elif event_type == Gio.FileMonitorEvent.ATTRIBUTE_CHANGED:
             path = file.get_path()
             assert path is not None
@@ -75,7 +75,7 @@ class SerialService(Service):
         if not os.access(path, os.R_OK | os.W_OK):
             return
 
-        logging.info(f'User was granted access to {path}')
+        logging.info("User was granted access to %s", path)
         logging.info('Replacing root watcher')
         Mechanism().CloseRFCOMM('(n)', port)
         subprocess.Popen([RFCOMM_WATCHER_PATH, path])
@@ -83,7 +83,7 @@ class SerialService(Service):
             handler_id = self._handlerids.pop(port)
             monitor.disconnect(handler_id)
         else:
-            logging.warning(f"No handler id for {port}")
+            logging.warning("No handler id for %s", port)
 
     def connect(
         self,
