@@ -44,17 +44,17 @@ class Manager(GObject.GObject, metaclass=SingletonGObjectMeta):
         if adapter_proxy:
             assert isinstance(adapter_proxy, Gio.DBusProxy)
             object_path = adapter_proxy.get_object_path()
-            logging.debug(f"Adapter1: {object_path}")
+            logging.debug("Adapter1: %s", object_path)
             self.emit('adapter-added', object_path)
         if device_proxy:
             assert isinstance(device_proxy, Gio.DBusProxy)
             object_path = device_proxy.get_object_path()
-            logging.debug(f"Device1: {object_path}")
+            logging.debug("Device1: %s", object_path)
             self.emit('device-created', object_path)
         if battery_proxy:
             assert isinstance(device_proxy, Gio.DBusProxy)
             object_path = device_proxy.get_object_path()
-            logging.debug(f"Battery1: {object_path}")
+            logging.debug("Battery1: %s", object_path)
             self.emit('battery-created', object_path)
 
     def _on_object_removed(self, _object_manager: Gio.DBusObjectManager, dbus_object: Gio.DBusObject) -> None:
@@ -77,7 +77,7 @@ class Manager(GObject.GObject, metaclass=SingletonGObjectMeta):
         object_path = dbus_object.get_object_path()
         battery = dbus_object.get_interface("org.bluez.Battery1")
         if battery is not None:
-            logging.debug(f"Battery1 added to {object_path}")
+            logging.debug("Battery1 added to %s", object_path)
             self.emit('battery-created', object_path)
 
     def _on_interface_removed(self, _object_manager: Gio.DBusObjectManager, dbus_object: Gio.DBusObject,
@@ -85,7 +85,7 @@ class Manager(GObject.GObject, metaclass=SingletonGObjectMeta):
         object_path = dbus_object.get_object_path()
         battery = dbus_object.get_interface("org.bluez.Battery1")
         if battery is not None:
-            logging.debug(f"Battery1 removed from {object_path}")
+            logging.debug("Battery1 removed from %s", object_path)
             self.emit('battery-removed', object_path)
 
     def get_adapters(self) -> list[Adapter]:
@@ -137,7 +137,7 @@ class Manager(GObject.GObject, metaclass=SingletonGObjectMeta):
             if proxy:
                 assert isinstance(proxy, Gio.DBusProxy)
                 object_path = ObjectPath(proxy.get_object_path())
-                if object_path.startswith(adapter_path):
+                if str(object_path).startswith(adapter_path):
                     paths.append(object_path)
 
         return [Device(obj_path=path) for path in paths]
