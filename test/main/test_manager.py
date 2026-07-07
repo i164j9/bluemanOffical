@@ -7,6 +7,30 @@ from blueman.main.Manager import Blueman, POWER_MANAGER_STATUS_RETRY_LIMIT
 
 
 class TestManager:
+    def test_apply_bluetooth_status_updates_action_and_ui(self) -> None:
+        apply_bluetooth_status = getattr(Blueman, "_apply_bluetooth_status")
+        action = Mock()
+        box = Mock()
+        image = SimpleNamespace(props=SimpleNamespace(icon_name=None))
+
+        def get_widget(widget_id: str, _widget_type: object) -> object:
+            if widget_id == "bt_status_box":
+                return box
+            if widget_id == "im_bluetooth_status":
+                return image
+            raise AssertionError(f"unexpected widget id {widget_id}")
+
+        manager = SimpleNamespace(
+            lookup_action=Mock(return_value=action),
+            builder=SimpleNamespace(get_widget=get_widget),
+        )
+
+        apply_bluetooth_status(manager, True)
+
+        action.set_state.assert_called_once()
+        box.set_tooltip_text.assert_called_once_with("Click to disable.")
+        assert image.props.icon_name == "bluetooth"
+
     def test_get_power_manager_status_ignores_missing_interface(self) -> None:
         get_power_manager_status = getattr(Blueman, "_get_power_manager_status")
         manager = SimpleNamespace(
@@ -82,11 +106,10 @@ class TestManager:
 
     def test_plugins_changed_uses_power_manager_fallback(self) -> None:
         get_initial_bluetooth_action_state = getattr(Blueman, "_get_initial_bluetooth_action_state")
-        action = Mock()
         schedule_retry = Mock()
         update_buttons = Mock()
+        apply_bluetooth_status = Mock()
         manager = SimpleNamespace(
-            lookup_action=Mock(return_value=action),
             Applet=Mock(QueryPlugins=Mock(return_value=["PowerManager"])),
             PowerManager=Mock(
                 get_bluetooth_status=Mock(
@@ -99,19 +122,24 @@ class TestManager:
             Toolbar=SimpleNamespace(),
             List=SimpleNamespace(Adapter=Mock()),
             _schedule_power_manager_status_retry=schedule_retry,
+            _apply_bluetooth_status=apply_bluetooth_status,
         )
         manager.__dict__["_get_initial_bluetooth_action_state"] = lambda: get_initial_bluetooth_action_state(manager)
         manager.Toolbar.__dict__["_update_buttons"] = update_buttons
 
         Blueman.on_applet_signal(manager, Mock(), "sender", "PluginsChanged", GLib.Variant("()", ()))
 
-        action.set_state.assert_called_once()
+        apply_bluetooth_status.assert_called_once_with(False)
         schedule_retry.assert_called_once_with()
         update_buttons.assert_called_once_with(manager.List.Adapter)
 
-    def test_bluetooth_status_signal_only_updates_action_state(self) -> None:
-        action = Mock()
-        manager = SimpleNamespace(lookup_action=Mock(return_value=action))
+    def test_bluetooth_status_signal_updates_ui_state(self) -> None:
+        clear_retry = Mock()
+        apply_bluetooth_status = Mock()
+        manager = SimpleNamespace(
+            _clear_power_manager_status_retry=clear_retry,
+            _apply_bluetooth_status=apply_bluetooth_status,
+        )
 
         Blueman.on_applet_signal(
             manager,
@@ -121,8 +149,8 @@ class TestManager:
             GLib.Variant("(b)", (True,)),
         )
 
-        action.set_state.assert_called_once()
-        action.change_state.assert_not_called()
+        clear_retry.assert_called_once_with()
+        apply_bluetooth_status.assert_called_once_with(True)
 
     @patch("blueman.main.Manager.launch")
     def test_send_launches_immediately_when_device_ready(self, launch_mock: Mock) -> None:

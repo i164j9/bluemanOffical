@@ -70,37 +70,14 @@ class AppletService(ProxyBase):
         super().__init__(name=self.NAME, interface_name=interface_name,
                          object_path=self.PATH)
 
-
-class AppletPowerManagerService(ProxyBase):
-    def __init__(self) -> None:
-        super().__init__(name=AppletService.NAME, interface_name="org.blueman.Applet.PowerManager",
-                         object_path=AppletService.PATH)
-
     def get_bluetooth_status(self) -> bool:
-        result = self.call_sync("org.blueman.Applet.PowerManager.GetBluetoothStatus", None,
-                                NO_DBUS_CALL_FLAGS, -1, None)
+        result = self.call_sync("GetBluetoothStatus", None, NO_DBUS_CALL_FLAGS, -1, None)
         value = cast(bool, result.unpack()[0])
         return value
 
     def set_bluetooth_status(self, status: bool) -> None:
         param = GLib.Variant("(b)", (status, ))
-        self.call_sync("org.blueman.Applet.PowerManager.SetBluetoothStatus", param, NO_DBUS_CALL_FLAGS, -1, None)
-
-
-class AppletDhcpClientService(ProxyBase):
-    def __init__(self) -> None:
-        super().__init__(name=AppletService.NAME, interface_name="org.blueman.Applet.DhcpClient",
-                         object_path=AppletService.PATH)
-
-    def dchp_client(self, object_path: ObjectPath) -> None:
-        param = GLib.Variant("o", object_path)
-        self.call_sync("org.blueman.Applet.DhcpClient.DhcpClient", param, NO_DBUS_CALL_FLAGS, -1, None)
-
-
-class AppletMenuService(ProxyBase):
-    def __init__(self) -> None:
-        super().__init__(name=AppletService.NAME, interface_name="org.blueman.Applet.Menu",
-                         object_path=AppletService.PATH)
+        self.call_sync("SetBluetoothStatus", param, NO_DBUS_CALL_FLAGS, -1, None)
 
     def get_menu(self) -> Iterable[MenuItemDict]:
         result = self.call_sync("GetMenu", None, NO_DBUS_CALL_FLAGS, -1, None)
@@ -108,36 +85,59 @@ class AppletMenuService(ProxyBase):
         return value
 
     def get_statusicon_implementations(self) -> list[str]:
-        result = self.call_sync("org.blueman.Applet.StatusIcon.GetStatusIconImplementations", None,
-                                NO_DBUS_CALL_FLAGS, -1, None)
+        result = self.call_sync("GetStatusIconImplementations", None, NO_DBUS_CALL_FLAGS, -1, None)
         value = cast(list[str], result.unpack()[0])
         return value
 
     def get_icon_name(self) -> str:
-        result = self.call_sync("org.blueman.Applet.StatusIcon.GetIconName", None, NO_DBUS_CALL_FLAGS, -1, None)
+        result = self.call_sync("GetIconName", None, NO_DBUS_CALL_FLAGS, -1, None)
         value = cast(str, result.unpack()[0])
         return value
 
     def get_tooltip_title(self) -> str:
-        result = self.call_sync("org.blueman.Applet.StatusIcon.GetToolTipTitle", None, NO_DBUS_CALL_FLAGS, -1, None)
+        result = self.call_sync("GetToolTipTitle", None, NO_DBUS_CALL_FLAGS, -1, None)
         value = cast(str, result.unpack()[0])
         return value
 
     def get_tooltip_text(self) -> str:
-        result = self.call_sync("org.blueman.Applet.StatusIcon.GetToolTipText", None, NO_DBUS_CALL_FLAGS, -1, None)
+        result = self.call_sync("GetToolTipText", None, NO_DBUS_CALL_FLAGS, -1, None)
         value = cast(str, result.unpack()[0])
         return value
 
     def get_visibility(self) -> bool:
-        result = self.call_sync("org.blueman.Applet.StatusIcon.GetVisibility", None, NO_DBUS_CALL_FLAGS, -1, None)
+        result = self.call_sync("GetVisibility", None, NO_DBUS_CALL_FLAGS, -1, None)
         value = cast(bool, result.unpack()[0])
         return value
 
+    def activate_menu_item(self, indexes: tuple[int, ...]) -> None:
+        self.call_sync("ActivateMenuItem", GLib.Variant("(ai)", (list(indexes),)), NO_DBUS_CALL_FLAGS, -1, None)
 
-class AppletStatusIconService(ProxyBase):
+    def activate_status_icon(self) -> None:
+        self.call_sync("Activate", None, NO_DBUS_CALL_FLAGS, -1, None)
+
+
+class AppletPowerManagerService(AppletService):
     def __init__(self) -> None:
-        super().__init__(name=AppletService.NAME, interface_name="org.blueman.Applet.StatusIcon",
-                         object_path=AppletService.PATH)
+        super().__init__()
+
+
+class AppletDhcpClientService(AppletService):
+    def __init__(self) -> None:
+        super().__init__()
+
+    def dchp_client(self, object_path: ObjectPath) -> None:
+        param = GLib.Variant("(o)", (object_path,))
+        self.call_sync("DhcpClient", param, NO_DBUS_CALL_FLAGS, -1, None)
+
+
+class AppletMenuService(AppletService):
+    def __init__(self) -> None:
+        super().__init__()
+
+
+class AppletStatusIconService(AppletService):
+    def __init__(self) -> None:
+        super().__init__()
 
 
 class AppletServiceApplication(ProxyBase):

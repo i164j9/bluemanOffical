@@ -78,7 +78,6 @@ class Blueman(Gtk.Application):
             self.Applet = AppletService()
             self.Applet.connect('g-signal', self.on_applet_signal)
             self.PowerManager = AppletPowerManagerService()
-            self.PowerManager.connect('g-signal', self.on_applet_signal)
         except DBusProxyFailed:
             print("Blueman applet needs to be running")
             bmexit()
@@ -148,18 +147,34 @@ class Blueman(Gtk.Application):
 
     def on_applet_signal(self, _proxy: AppletService | AppletPowerManagerService, _sender: str, signal_name: str,
                          params: GLib.Variant) -> None:
-        action = self.lookup_action("bluetooth_status")
-
         if signal_name == 'BluetoothStatusChanged':
-            Blueman._clear_power_manager_status_retry(self)
+            self._clear_power_manager_status_retry()
             status = params.unpack()[0]
-            action.set_state(GLib.Variant.new_boolean(status))
+            self._apply_bluetooth_status(status)
         elif signal_name == "PluginsChanged":
             if "PowerManager" in self.Applet.QueryPlugins():
-                status = self._get_initial_bluetooth_action_state()
-                action.set_state(GLib.Variant.new_boolean(status))
+                self._apply_bluetooth_status(self._get_initial_bluetooth_action_state())
+            else:
+                self._apply_bluetooth_status(False)
 
             getattr(self.Toolbar, "_update_buttons")(self.List.Adapter)
+
+    def _apply_bluetooth_status(self, state: bool) -> None:
+        action = self.lookup_action("bluetooth_status")
+        assert action is not None
+        action.set_state(GLib.Variant.new_boolean(state))
+
+        if state:
+            icon_name = "bluetooth"
+            tooltip_text = _("Click to disable.")
+        else:
+            icon_name = "bluetooth-disabled"
+            tooltip_text = _("Click to enable.")
+
+        box = self.builder.get_widget("bt_status_box", Gtk.Box)
+        image = self.builder.get_widget("im_bluetooth_status", Gtk.Image)
+        box.set_tooltip_text(tooltip_text)
+        image.props.icon_name = icon_name
 
     def _try_get_power_manager_status(self, log_missing: bool = True) -> bool | None:
         try:
@@ -192,22 +207,20 @@ class Blueman(Gtk.Application):
 
         def retry() -> bool:
             self._power_manager_retry_source_id = None
-            action = self.lookup_action("bluetooth_status")
-            assert action is not None
 
             if "PowerManager" not in self.Applet.QueryPlugins():
                 self._power_manager_retry_attempts = 0
-                action.set_state(GLib.Variant.new_boolean(False))
+                self._apply_bluetooth_status(False)
                 return False
 
             status = Blueman._try_get_power_manager_status(self, log_missing=False)
             if status is None:
-                action.set_state(GLib.Variant.new_boolean(False))
+                self._apply_bluetooth_status(False)
                 self._schedule_power_manager_status_retry()
                 return False
 
             self._power_manager_retry_attempts = 0
-            action.set_state(GLib.Variant.new_boolean(status))
+            self._apply_bluetooth_status(status)
             return False
 
         self._power_manager_retry_source_id = GLib.timeout_add(POWER_MANAGER_STATUS_RETRY_INTERVAL_MS, retry)
@@ -246,9 +259,7 @@ class Blueman(Gtk.Application):
 
         self.List.connect("adapter-changed", self.on_adapter_changed)
 
-        action_status = self._get_initial_bluetooth_action_state()
-        bt_status_action = self.lookup_action("bluetooth_status")
-        bt_status_action.set_state(GLib.Variant.new_boolean(action_status))
+        self._apply_bluetooth_status(self._get_initial_bluetooth_action_state())
 
     def on_dbus_name_vanished(self, _connection: Gio.DBusConnection, name: str) -> None:
         logging.info(name)
@@ -268,9 +279,7 @@ class Blueman(Gtk.Application):
         # UI already handles BlueZ start/stop; user notification could be improved.
         self.quit()
 
-    def _on_bt_state_changed(self, action: Gio.SimpleAction, state_variant: GLib.Variant) -> None:
-        action.set_state(state_variant)
-
+    def _on_bt_state_changed(self, _action: Gio.SimpleAction, state_variant: GLib.Variant) -> None:
         state = state_variant.unpack()
         try:
             self.PowerManager.set_bluetooth_status(state)
@@ -280,17 +289,7 @@ class Blueman(Gtk.Application):
                 return
             raise
 
-        if state:
-            icon_name = "bluetooth"
-            tooltip_text = _("Click to disable.")
-        else:
-            icon_name = "bluetooth-disabled"
-            tooltip_text = _("Click to enable.")
-
-        box = self.builder.get_widget("bt_status_box", Gtk.Box)
-        image = self.builder.get_widget("im_bluetooth_status", Gtk.Image)
-        box.set_tooltip_text(tooltip_text)
-        image.props.icon_name = icon_name
+        self._apply_bluetooth_status(state)
 
     def _on_configure(self, _window: Gtk.ApplicationWindow, event: Gdk.EventConfigure) -> bool:
         width, height, x, y = self.Config["window-properties"]

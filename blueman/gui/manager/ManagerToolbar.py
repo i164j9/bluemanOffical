@@ -78,7 +78,7 @@ class ManagerToolbar:
             self.b_trust.props.sensitive = False
             self.b_remove.props.sensitive = False
             self.b_send.props.sensitive = False
-            self.b_bluetooth_status.props.sensitive = False
+            self.b_bluetooth_status.props.sensitive = pm_enabled
             self.b_send.props.opacity = opacity
         else:
             row = self.blueman.List.get(tree_iter, "paired", "trusted", "objpush")
@@ -88,7 +88,7 @@ class ManagerToolbar:
             self.b_remove.props.sensitive = True if powered else False
             self.b_remove.props.opacity = 1.0 if powered else opacity
             self.b_send.props.sensitive = powered and row["objpush"]
-            self.b_bluetooth_status.props.sensitive = True
+            self.b_bluetooth_status.props.sensitive = pm_enabled
             self.b_send.props.opacity = 1.0 if powered and row["objpush"] else opacity
             self.b_trust.props.icon_name = "blueman-untrust-symbolic" if row["trusted"] else "blueman-trust-symbolic"
             self.b_trust.props.label = _("Untrust") if row["trusted"] else _("Trust")
