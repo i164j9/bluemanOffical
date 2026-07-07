@@ -15,10 +15,14 @@ else:
 from blueman.plugins.AppletPlugin import AppletPlugin
 from blueman.bluez.Device import Device
 from blueman.services.Functions import get_service
+from blueman.Sdp import ADVANCED_AUDIO_SVCLASS_ID, AUDIO_SOURCE_SVCLASS_ID, AUDIO_SINK_SVCLASS_ID, ServiceUUID
 
 import logging
 
 from blueman.services.meta import SerialService, NetworkService
+
+
+GENERIC_CONNECT = '00000000-0000-0000-0000-000000000000'
 
 
 class RFCOMMConnectedListener:
@@ -74,6 +78,47 @@ class DBusService(AppletPlugin):
     def _plugins_changed(self) -> None:
         self._emit_dbus_signal("PluginsChanged")
 
+    @staticmethod
+    def _get_preferred_generic_connect_uuid(device: Device) -> str | None:
+        try:
+            uuids = list(device["UUIDs"])
+        except BluezDBusException:
+            logging.debug("Falling back to generic connect because UUIDs are unavailable", exc_info=True)
+            return None
+
+        advanced_audio_uuid: str | None = None
+        audio_source_uuid: str | None = None
+        has_audio_sink = False
+
+        for uuid in uuids:
+            short_uuid = ServiceUUID(uuid).short_uuid
+            if short_uuid == ADVANCED_AUDIO_SVCLASS_ID:
+                advanced_audio_uuid = uuid
+            elif short_uuid == AUDIO_SOURCE_SVCLASS_ID:
+                audio_source_uuid = uuid
+            elif short_uuid == AUDIO_SINK_SVCLASS_ID:
+                has_audio_sink = True
+
+        if advanced_audio_uuid is not None and not has_audio_sink:
+            return advanced_audio_uuid
+
+        if audio_source_uuid is not None and not has_audio_sink:
+            return audio_source_uuid
+
+        return None
+
+    @staticmethod
+    def _should_treat_profile_unavailable_as_success(device: Device, exception: BluezDBusException) -> bool:
+        message = str(exception)
+        if "ProfileUnavailable" not in message or "No more profiles to connect to" not in message:
+            return False
+
+        try:
+            return bool(device["Connected"])
+        except BluezDBusException:
+            logging.debug("Unable to read Connected while handling profile connect failure", exc_info=True)
+            return False
+
     def connect_service(self, object_path: ObjectPath, uuid: str, ok: Callable[[], None],
                         err: Callable[[Union[BluezDBusException, "NMConnectionError",
                                              RFCOMMError, GLib.Error, str]], None]) -> None:
@@ -84,9 +129,29 @@ class DBusService(AppletPlugin):
         else:
             self.parent.Plugins.RecentConns.notify(object_path, uuid)
 
-        if uuid == '00000000-0000-0000-0000-000000000000':
+        if uuid == GENERIC_CONNECT:
             device = Device(obj_path=object_path)
-            device.connect(reply_handler=ok, error_handler=err)
+            preferred_uuid = self._get_preferred_generic_connect_uuid(device)
+            if preferred_uuid is None:
+                device.connect_device(reply_handler=ok, error_handler=err)
+            else:
+                def on_generic_profile_error(exception: BluezDBusException) -> None:
+                    if self._should_treat_profile_unavailable_as_success(device, exception):
+                        logging.info(
+                            "Treating targeted profile connect failure as success for %s: %s",
+                            object_path,
+                            exception,
+                        )
+                        ok()
+                    else:
+                        err(exception)
+
+                logging.info(
+                    "Using targeted profile connect for %s via %s instead of Device.Connect",
+                    object_path,
+                    preferred_uuid,
+                )
+                device.connect_profile(preferred_uuid, reply_handler=ok, error_handler=on_generic_profile_error)
         else:
             service = get_service(Device(obj_path=object_path), uuid)
             assert service is not None
@@ -113,9 +178,9 @@ class DBusService(AppletPlugin):
     def _disconnect_service(self, object_path: ObjectPath, uuid: str, port: int, ok: Callable[[], None],
                             err: Callable[[Union[BluezDBusException, "NMConnectionError",
                                                  GLib.Error, str]], None]) -> None:
-        if uuid == '00000000-0000-0000-0000-000000000000':
+        if uuid == GENERIC_CONNECT:
             device = Device(obj_path=object_path)
-            device.disconnect(reply_handler=ok, error_handler=err)
+            device.disconnect_device(reply_handler=ok, error_handler=err)
         else:
             service = get_service(Device(obj_path=object_path), uuid)
             assert service is not None

@@ -1,5 +1,8 @@
 from collections.abc import Callable
+
 from blueman.bluemantyping import ObjectPath
+
+from gi.repository import GLib
 
 from blueman.bluez.Base import Base
 from blueman.bluez.AnyBase import AnyBase
@@ -19,14 +22,23 @@ class Device(Base):
     ) -> None:
         self._call('Pair', reply_handler=reply_handler, error_handler=error_handler)
 
-    def connect(  # type: ignore
+    def connect_device(
         self,
         reply_handler: Callable[[], None] | None = None,
         error_handler: Callable[[BluezDBusException], None] | None = None,
     ) -> None:
         self._call('Connect', reply_handler=reply_handler, error_handler=error_handler)
 
-    def disconnect(  # type: ignore
+    def connect_profile(
+        self,
+        uuid: str,
+        reply_handler: Callable[[], None] | None = None,
+        error_handler: Callable[[BluezDBusException], None] | None = None,
+    ) -> None:
+        param = GLib.Variant('(s)', (uuid,))
+        self._call('ConnectProfile', param, reply_handler=reply_handler, error_handler=error_handler)
+
+    def disconnect_device(
         self,
         reply_handler: Callable[[], None] | None = None,
         error_handler: Callable[[BluezDBusException], None] | None = None,

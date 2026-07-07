@@ -117,8 +117,7 @@ class TestPulseaudioUtils(TestCase):
         source_remove.assert_called_once_with(29)
         assert getattr(utils, "_reconnect_source_id") is None
         assert getattr(utils, "connected") is True
-        logging_debug.assert_called_once_with(ContextState.READY)
-        assert utils.simple_callback.call_args[0][0] is logging_debug
+        logging_debug.assert_called_once_with("PulseAudio context state %s -> %s", "failed", "ready")
         assert utils.simple_callback.call_args[0][1] is pa_context_subscribe
 
     @patch("blueman.main.PulseAudioUtils.logging.debug")
@@ -127,7 +126,7 @@ class TestPulseaudioUtils(TestCase):
 
         getattr(PulseAudioUtils, "_PulseAudioUtils__event_callback")(utils, object(), 25, 170, object())
 
-        logging_debug.assert_called_once_with("%s %s", 25, 170)
+        logging_debug.assert_called_once_with("PulseAudio event %s idx=%s", "card:change (0x0019)", 170)
         utils.emit.assert_called_once_with("event", 25, 170)
 
     @patch("blueman.main.PulseAudioUtils.pa_operation_unref")

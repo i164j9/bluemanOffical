@@ -90,6 +90,66 @@ class SubscriptionMask(IntEnum):
     ALL = 0x02ff
 
 
+_EVENT_FACILITY_NAMES = {
+    int(EventType.SINK): "sink",
+    int(EventType.SOURCE): "source",
+    int(EventType.SINK_INPUT): "sink-input",
+    int(EventType.SOURCE_OUTPUT): "source-output",
+    int(EventType.MODULE): "module",
+    int(EventType.CLIENT): "client",
+    int(EventType.SAMPLE_CACHE): "sample-cache",
+    int(EventType.SERVER): "server",
+    int(EventType.CARD): "card",
+}
+
+_EVENT_TYPE_NAMES = {
+    int(EventType.NEW): "new",
+    int(EventType.CHANGE): "change",
+    int(EventType.REMOVE): "remove",
+}
+
+
+def describe_context_state(state: int) -> str:
+    try:
+        return ContextState(state).name.lower()
+    except ValueError:
+        return f"unknown(0x{state:04x})"
+
+
+def describe_event_type(event_type: int) -> str:
+    facility_value = event_type & EventType.FACILITY_MASK
+    type_value = event_type & EventType.TYPE_MASK
+    facility = _EVENT_FACILITY_NAMES.get(facility_value, f"unknown-facility(0x{facility_value:04x})")
+    event_name = _EVENT_TYPE_NAMES.get(type_value, f"unknown-type(0x{type_value:04x})")
+    return f"{facility}:{event_name} (0x{event_type:04x})"
+
+
+def summarize_card_info(card: Mapping[str, object]) -> str:
+    raw_proplist = card.get("proplist", {})
+    proplist = raw_proplist if isinstance(raw_proplist, Mapping) else {}
+    address = proplist.get("device.string", "?")
+    active_profile = card.get("active_profile", "?")
+    profiles_summary: list[str] = []
+
+    raw_profiles = card.get("profiles", [])
+    if isinstance(raw_profiles, list):
+        for raw_profile in raw_profiles:
+            if not isinstance(raw_profile, Mapping):
+                continue
+
+            name = str(raw_profile.get("name", "?"))
+            n_sinks = raw_profile.get("n_sinks", "?")
+            n_sources = raw_profile.get("n_sources", "?")
+            marker = " *" if name == active_profile else ""
+            profiles_summary.append(f"{name} ({n_sinks} sinks/{n_sources} sources){marker}")
+
+    profiles = ", ".join(profiles_summary) if profiles_summary else "<no profiles>"
+    return (
+        f"name={card.get('name', '?')} address={address} driver={card.get('driver', '?')} "
+        f"active_profile={active_profile} profiles=[{profiles}]"
+    )
+
+
 class NullError(Exception):
     pass
 
@@ -222,16 +282,21 @@ class PulseAudioUtils(GObject.GObject, metaclass=SingletonGObjectMeta):
             return
 
         state = pa_context_get_state(pa_context)
-        logging.debug(state)
+        logging.debug(
+            "PulseAudio context state %s -> %s",
+            describe_context_state(self.prev_state),
+            describe_context_state(state),
+        )
         if state == ContextState.READY:
             self.clear_reconnect_timer()
             self.connected = True
             self.emit("connected")
             mask = SubscriptionMask.CARD | SubscriptionMask.MODULE
 
-            self.simple_callback(logging.debug,
-                                 pa_context_subscribe,
-                                 mask)
+            def log_subscribe_result(result: int) -> None:
+                logging.debug("PulseAudio subscribe result=%s mask=0x%04x", result, int(mask))
+
+            self.simple_callback(log_subscribe_result, pa_context_subscribe, mask)
         else:
             if self.connected:
                 self.emit("disconnected")
@@ -328,11 +393,13 @@ class PulseAudioUtils(GObject.GObject, metaclass=SingletonGObjectMeta):
 
         def handler(entry_info: Optional["_Pointer[PaCardInfo]"], end: bool) -> None:
             if end:
+                logging.debug("PulseAudio list_cards completed cards=%d", len(data))
                 callback(data)
                 return
 
             assert entry_info is not None
             entry = self.__card_info(entry_info)
+            logging.debug("PulseAudio list_cards entry: %s", summarize_card_info(entry))
 
             data[entry["name"]] = entry
 
@@ -347,15 +414,18 @@ class PulseAudioUtils(GObject.GObject, metaclass=SingletonGObjectMeta):
                 return
 
             assert entry_info is not None
-            callback(self.__card_info(entry_info))
+            card_info = self.__card_info(entry_info)
+            logging.debug("PulseAudio get_card idx=%s -> %s", card, summarize_card_info(card_info))
+            callback(card_info)
 
         self.__init_list_callback(pa_context_get_card_info_by_index, pa_card_info_cb_t, handler, card)
 
     def set_card_profile(self, card: int, profile: str, callback: Callable[[int], None]) -> None:
+        logging.debug("PulseAudio set_card_profile idx=%s profile=%s", card, profile)
         self.simple_callback(callback, pa_context_set_card_profile_by_index, card, profile.encode("UTF-8"))
 
     def __event_callback(self, _context: c_void_p, event_type: int, idx: int, _userdata: c_void_p) -> None:
-        logging.debug("%s %s", event_type, idx)
+        logging.debug("PulseAudio event %s idx=%s", describe_event_type(event_type), idx)
         self.emit("event", event_type, idx)
 
     def __init__(self) -> None:

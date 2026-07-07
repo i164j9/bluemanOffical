@@ -4,7 +4,12 @@ from collections.abc import Mapping, Sequence
 
 from blueman.bluez.Device import Device
 from blueman.plugins.ManagerPlugin import ManagerPlugin
-from blueman.main.PulseAudioUtils import PulseAudioUtils, EventType
+from blueman.main.PulseAudioUtils import (
+    PulseAudioUtils,
+    EventType,
+    describe_event_type,
+    summarize_card_info,
+)
 from blueman.gui.manager.ManagerDeviceMenu import ManagerDeviceMenu, MenuItemsProvider, DeviceMenuItem
 from blueman.Functions import create_menuitem
 from blueman.Sdp import AUDIO_SOURCE_SVCLASS_ID, AUDIO_SINK_SVCLASS_ID, ServiceUUID
@@ -51,7 +56,11 @@ class PulseAudioProfile(ManagerPlugin, MenuItemsProvider):
         if not self._active:
             return
 
-        logging.info("connected")
+        logging.debug(
+            "PulseAudioProfile manager ready deferred=%s known_cards=%d",
+            [dev['Address'] for dev in self.deferred],
+            len(self.devices),
+        )
         for dev in self.deferred:
             self.regenerate_with_device(dev['Address'])
 
@@ -64,7 +73,7 @@ class PulseAudioProfile(ManagerPlugin, MenuItemsProvider):
                 inst.generate()
 
     def on_pa_event(self, utils: PulseAudioUtils, event: int, idx: int) -> None:
-        logging.debug("%s %s", event, idx)
+        logging.debug("PulseAudioProfile manager event %s idx=%s", describe_event_type(event), idx)
 
         def get_card_cb(card: CardInfo) -> None:
             if not self._active:
@@ -75,18 +84,18 @@ class PulseAudioProfile(ManagerPlugin, MenuItemsProvider):
                        "module-bluez5-device.c")
 
             if card["driver"] in drivers:
+                logging.debug("PulseAudioProfile manager card update: %s", summarize_card_info(card))
                 self.devices[card["proplist"]["device.string"]] = card
                 self.regenerate_with_device(card["proplist"]["device.string"])
+            else:
+                logging.debug("PulseAudioProfile manager ignoring card: %s", summarize_card_info(card))
 
         if event & EventType.FACILITY_MASK == EventType.CARD:
-            logging.info("card")
             if event & EventType.CHANGE:
-                logging.info("change")
                 utils.get_card(idx, get_card_cb)
             elif event & EventType.REMOVE:
-                logging.info("remove")
+                logging.debug("PulseAudioProfile manager card removed idx=%s", idx)
             else:
-                logging.info("add")
                 utils.get_card(idx, get_card_cb)
 
     def query_pa(self, device: Device, item: Gtk.MenuItem) -> None:
@@ -95,12 +104,24 @@ class PulseAudioProfile(ManagerPlugin, MenuItemsProvider):
                 return
 
             for c in cards.values():
-                if c["proplist"]["device.string"] == device['Address']:
+                if c["proplist"].get("device.string") == device['Address']:
                     self.devices[device['Address']] = c
+                    logging.debug(
+                        "PulseAudioProfile manager matched card for %s: %s",
+                        device['Address'],
+                        summarize_card_info(c),
+                    )
                     self.generate_menu(device, item)
                     return
 
+            logging.debug(
+                "PulseAudioProfile manager found no PulseAudio card for %s across %d cards",
+                device['Address'],
+                len(cards),
+            )
+
         pa = PulseAudioUtils()
+        logging.debug("PulseAudioProfile manager querying cards for %s", device['Address'])
         pa.list_cards(list_cb)
 
     def on_selection_changed(self, item: Gtk.CheckMenuItem, device: Device, profile: str) -> None:
@@ -108,11 +129,23 @@ class PulseAudioProfile(ManagerPlugin, MenuItemsProvider):
             pa = PulseAudioUtils()
 
             c = self.devices[device['Address']]
+            logging.debug(
+                "PulseAudioProfile manager set profile device=%s card_idx=%s profile=%s",
+                device['Address'],
+                c['index'],
+                profile,
+            )
 
             def on_result(res: int) -> None:
                 if not self._active:
                     return
 
+                logging.debug(
+                    "PulseAudioProfile manager set profile result device=%s profile=%s result=%s",
+                    device['Address'],
+                    profile,
+                    res,
+                )
                 if not res:
                     self.parent.infobar_update(_("Failed to change profile to %s" % profile))
 
@@ -120,6 +153,12 @@ class PulseAudioProfile(ManagerPlugin, MenuItemsProvider):
 
     def generate_menu(self, device: Device, item: Gtk.MenuItem) -> None:
         info = self.devices[device['Address']]
+        logging.debug(
+            "PulseAudioProfile manager build menu for %s active_profile=%s profiles=%s",
+            device['Address'],
+            info['active_profile'],
+            [profile['name'] for profile in info['profiles']],
+        )
         group: Sequence[Gtk.RadioMenuItem] = []
 
         sub = Gtk.Menu()
@@ -156,6 +195,14 @@ class PulseAudioProfile(ManagerPlugin, MenuItemsProvider):
         if device['Connected'] and audio_source:
 
             pa = PulseAudioUtils()
+            logging.debug(
+                "PulseAudioProfile manager menu request device=%s connected=%s audio_source=%s known_card=%s pa_connected=%s",
+                device['Address'],
+                device['Connected'],
+                audio_source,
+                device['Address'] in self.devices,
+                pa.connected,
+            )
             if not pa.connected:
                 self.deferred.append(device)
                 return []

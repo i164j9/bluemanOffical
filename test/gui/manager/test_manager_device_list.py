@@ -141,6 +141,72 @@ class TestManagerDeviceList:
         tree_row_reference_new.assert_called_once_with(list_view.liststore, tree_path)
         timeout_add_mock.assert_called_once()
 
+    def test_uuid_update_stops_monitoring_for_connected_audio_devices(self) -> None:
+        tree_iter = Mock()
+        address = "AA:BB:CC:DD:EE:FF"
+        device = {
+            "Address": address,
+            "Connected": True,
+            "UUIDs": [f"0000{AUDIO_SINK_SVCLASS_ID:04x}-0000-1000-8000-00805F9B34FB"],
+        }
+
+        list_view = Mock()
+        list_view.__dict__["_monitored_devices"] = {address}
+        list_view.__dict__["_has_objpush"] = Mock(return_value=False)
+        list_view.__dict__["_disable_power_levels"] = Mock()
+        list_view.get.return_value = {"device": device}
+
+        getattr(ManagerDeviceList, "row_update_event")(list_view, tree_iter, "UUIDs", device["UUIDs"])
+
+        list_view.set.assert_called_once_with(tree_iter, objpush=False)
+        getattr(list_view, "_disable_power_levels").assert_called_once_with(tree_iter)
+        assert address not in getattr(list_view, "_monitored_devices")
+
+    def test_services_resolved_stops_monitoring_for_connected_audio_devices(self) -> None:
+        tree_iter = Mock()
+        address = "AA:BB:CC:DD:EE:FF"
+        device = {
+            "Address": address,
+            "Connected": True,
+            "UUIDs": [f"0000{AUDIO_SINK_SVCLASS_ID:04x}-0000-1000-8000-00805F9B34FB"],
+        }
+
+        list_view = Mock()
+        list_view.__dict__["_monitored_devices"] = {address}
+        list_view.__dict__["_disable_power_levels"] = Mock()
+        list_view.get.return_value = {"device": device}
+
+        getattr(ManagerDeviceList, "row_update_event")(list_view, tree_iter, "ServicesResolved", True)
+
+        getattr(list_view, "_disable_power_levels").assert_called_once_with(tree_iter)
+        assert address not in getattr(list_view, "_monitored_devices")
+
+    def test_check_power_levels_stops_when_device_resolves_to_audio(self) -> None:
+        tree_iter = Mock()
+        row_ref = Mock()
+        row_ref.valid.return_value = True
+        row_ref.get_path.return_value = Mock()
+        cinfo = Mock()
+        address = "AA:BB:CC:DD:EE:FF"
+        device = {
+            "Address": address,
+            "Connected": True,
+            "UUIDs": [f"0000{AUDIO_SINK_SVCLASS_ID:04x}-0000-1000-8000-00805F9B34FB"],
+        }
+
+        list_view = Mock()
+        list_view.__dict__["_monitored_devices"] = {address}
+        list_view.__dict__["_disable_power_levels"] = Mock()
+        list_view.get_iter.return_value = tree_iter
+        list_view.get.return_value = {"device": device}
+
+        keep_monitoring = getattr(ManagerDeviceList, "_check_power_levels")(list_view, row_ref, cinfo, address)
+
+        assert keep_monitoring is False
+        cinfo.deinit.assert_called_once_with()
+        getattr(list_view, "_disable_power_levels").assert_called_once_with(tree_iter)
+        assert address not in getattr(list_view, "_monitored_devices")
+
     def test_row_update_event_logs_state_changes_at_debug(self, monkeypatch: pytest.MonkeyPatch) -> None:
         debug_mock = Mock()
         monkeypatch.setattr("blueman.gui.manager.ManagerDeviceList.logging.debug", debug_mock)

@@ -5,7 +5,7 @@ from gi.repository import GLib
 from gi.repository import Gtk
 
 from blueman.gui.Animation import Animation
-from blueman.gui.manager.ManagerDeviceList import ManagerDeviceList
+from blueman.gui.manager.ManagerDeviceList import ManagerDeviceList, should_monitor_power_levels
 from blueman.main.SpeedCalc import SpeedCalc
 from blueman.Functions import adapter_path_to_name
 from blueman.Functions import format_bytes
@@ -18,10 +18,19 @@ if TYPE_CHECKING:
     from blueman.main.Manager import Blueman
 
 
+def has_connected_audio_device(list_view: ManagerDeviceList) -> bool:
+    for row in list_view.liststore:
+        device = list_view.get(row.iter, "device")["device"]
+        if device["Connected"] and not should_monitor_power_levels(device):
+            return True
+    return False
+
+
 class ManagerStats:
     hbox: Gtk.Box
 
     def __init__(self, blueman: "Blueman") -> None:
+        self.List = blueman.List
 
         blueman.List.connect("adapter-changed", self.on_adapter_changed)
 
@@ -82,6 +91,9 @@ class ManagerStats:
 
     def _update(self) -> bool:
         if self.hci is not None:
+            if has_connected_audio_device(self.List):
+                return True
+
             devinfo = device_info(self.hci)
             _tx = devinfo["stat"]["byte_tx"]
             _rx = devinfo["stat"]["byte_rx"]

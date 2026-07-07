@@ -588,7 +588,11 @@ class ManagerDeviceList(DeviceList):
         if not row_ref.valid():
             logging.warning("stopping monitor (row does not exist)")
             cinfo.deinit()
-            self._monitored_devices.remove(address)
+            self._monitored_devices.discard(address)
+            return False
+
+        if address not in self._monitored_devices:
+            cinfo.deinit()
             return False
 
         tree_iter = self.get_iter(row_ref.get_path())
@@ -596,13 +600,19 @@ class ManagerDeviceList(DeviceList):
 
         device = self.get(tree_iter, "device")["device"]
 
+        if not should_monitor_power_levels(device):
+            cinfo.deinit()
+            self._disable_power_levels(tree_iter)
+            self._monitored_devices.discard(address)
+            return False
+
         if device["Connected"]:
             self._update_power_levels(tree_iter, device, cinfo)
             return True
         else:
             cinfo.deinit()
             self._disable_power_levels(tree_iter)
-            self._monitored_devices.remove(address)
+            self._monitored_devices.discard(address)
             return False
 
     def row_update_event(self, tree_iter: Gtk.TreeIter, key: str, value: Any) -> None:
@@ -632,9 +642,15 @@ class ManagerDeviceList(DeviceList):
             name = self.make_display_name(device.display_name, device["Class"], device["Address"])
             self.set(tree_iter, caption=c, alias=name)
 
-        elif key == "UUIDs":
-            has_objpush = self._has_objpush(device)
-            self.set(tree_iter, objpush=has_objpush)
+        elif key in ("UUIDs", "ServicesResolved"):
+            if key == "UUIDs":
+                has_objpush = self._has_objpush(device)
+                self.set(tree_iter, objpush=has_objpush)
+
+            if device["Connected"] and device["Address"] in self._monitored_devices \
+                    and not should_monitor_power_levels(device):
+                self._disable_power_levels(tree_iter)
+                self._monitored_devices.discard(device["Address"])
 
         elif key == "Connected":
             self.set(tree_iter, connected=value)

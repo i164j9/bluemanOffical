@@ -5,7 +5,14 @@ from typing import Any
 from collections.abc import Mapping, Callable
 
 from blueman.bluez.Device import Device
-from blueman.main.PulseAudioUtils import CardInfo, CardProfileInfo, EventType, PulseAudioUtils
+from blueman.main.PulseAudioUtils import (
+    CardInfo,
+    CardProfileInfo,
+    EventType,
+    PulseAudioUtils,
+    describe_event_type,
+    summarize_card_info,
+)
 from blueman.plugins.AppletPlugin import AppletPlugin
 from blueman.plugins.applet.Menu import MenuItem, SubmenuItemDict
 from blueman.Sdp import (AUDIO_SINK_SVCLASS_ID, AUDIO_SOURCE_SVCLASS_ID,
@@ -54,6 +61,14 @@ class AudioProfiles(AppletPlugin):
 
         if device['Connected'] and audio_source:
             pa = PulseAudioUtils()
+            logging.debug(
+                "PulseAudioProfile applet menu request device=%s connected=%s audio_source=%s known_card=%s pa_connected=%s",
+                device['Address'],
+                device['Connected'],
+                audio_source,
+                device['Address'] in self._devices,
+                pa.connected,
+            )
             if not pa.connected:
                 return
 
@@ -101,30 +116,54 @@ class AudioProfiles(AppletPlugin):
                 return
 
             for c in cards.values():
-                if c["proplist"]["device.string"] == device['Address']:
+                if c["proplist"].get("device.string") == device['Address']:
                     self._devices[device['Address']] = c
+                    logging.debug(
+                        "PulseAudioProfile applet matched card for %s: %s",
+                        device['Address'],
+                        summarize_card_info(c),
+                    )
                     self.add_device_profile_menu(device)
                     return
 
+            logging.debug(
+                "PulseAudioProfile applet found no PulseAudio card for %s across %d cards",
+                device['Address'],
+                len(cards),
+            )
+
         pa = PulseAudioUtils()
+        logging.debug("PulseAudioProfile applet querying cards for %s", device['Address'])
         pa.list_cards(list_cb)
 
     def on_activate_profile(self, device: Device, profile: CardProfileInfo) -> None:
         pa = PulseAudioUtils()
 
         c = self._devices[device['Address']]
+        logging.debug(
+            "PulseAudioProfile applet set profile device=%s card_idx=%s profile=%s",
+            device['Address'],
+            c['index'],
+            profile['name'],
+        )
 
         def on_result(res: int) -> None:
             if not self._active:
                 return
 
+            logging.debug(
+                "PulseAudioProfile applet set profile result device=%s profile=%s result=%s",
+                device['Address'],
+                profile['name'],
+                res,
+            )
             if not res:
                 logging.error("Failed to change profile to %s", profile['name'])
 
         pa.set_card_profile(c["index"], profile["name"], on_result)
 
     def on_pa_event(self, utils: PulseAudioUtils, event: int, idx: int) -> None:
-        logging.debug("%s %s", event, idx)
+        logging.debug("PulseAudioProfile applet event %s idx=%s", describe_event_type(event), idx)
 
         def get_card_cb(card: CardInfo) -> None:
             if not self._active:
@@ -135,26 +174,30 @@ class AudioProfiles(AppletPlugin):
                        "module-bluez5-device.c")
 
             if card["driver"] in drivers:
+                logging.debug("PulseAudioProfile applet card update: %s", summarize_card_info(card))
                 self._devices[card["proplist"]["device.string"]] = card
                 self.clear_menu()
                 self.generate_menu()
+            else:
+                logging.debug("PulseAudioProfile applet ignoring card: %s", summarize_card_info(card))
 
         if event & EventType.FACILITY_MASK == EventType.CARD:
-            logging.info("card")
             if event & EventType.TYPE_MASK == EventType.CHANGE:
-                logging.info("change")
                 utils.get_card(idx, get_card_cb)
             elif event & EventType.TYPE_MASK == EventType.REMOVE:
-                logging.info("remove")
+                logging.debug("PulseAudioProfile applet card removed idx=%s", idx)
             else:
-                logging.info("add")
                 utils.get_card(idx, get_card_cb)
 
     def on_pa_ready(self, _utils: PulseAudioUtils) -> None:
         if not self._active:
             return
 
-        logging.info("PulseAudio Ready")
+        logging.debug(
+            "PulseAudioProfile applet ready known_cards=%d menu_devices=%d",
+            len(self._devices),
+            len(self._device_menus),
+        )
         self.generate_menu()
 
     def on_adapter_added(self, path: str) -> None:
@@ -167,6 +210,12 @@ class AudioProfiles(AppletPlugin):
 
     def on_device_property_changed(self, path: str, key: str, value: Any) -> None:
         if key == "Connected":
+            logging.debug(
+                "PulseAudioProfile applet device property changed path=%s key=%s value=%r",
+                path,
+                key,
+                value,
+            )
             self.clear_menu()
             self.generate_menu()
 

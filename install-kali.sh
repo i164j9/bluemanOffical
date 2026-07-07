@@ -23,6 +23,7 @@ run_tests=false
 refresh_autotools=false
 clean_build=false
 stage_root=""
+python_install_dir=""
 
 cleanup_stage() {
     local exit_code=$?
@@ -95,6 +96,35 @@ if ((EUID != 0)); then
 fi
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+python_install_dir="$(python3 - "$prefix" <<'PY'
+import pathlib
+import site
+import sys
+
+prefix = pathlib.Path(sys.argv[1]).resolve()
+candidates: list[tuple[int, int, int, int, pathlib.Path]] = []
+
+for raw in site.getsitepackages():
+    path = pathlib.Path(raw).resolve()
+    try:
+        relative = path.relative_to(prefix)
+    except ValueError:
+        continue
+
+    under_lib = 0 if relative.parts and relative.parts[0] == "lib" else 1
+    prefers_dist_packages = 0 if path.name == "dist-packages" else 1
+    prefers_versionless = 0 if "python3/dist-packages" in path.as_posix() else 1
+    candidates.append((under_lib, prefers_dist_packages, prefers_versionless, len(relative.parts), path))
+
+if candidates:
+    print(min(candidates)[-1])
+PY
+)"
+
+if [[ -n "$python_install_dir" ]]; then
+    echo "Using Python install directory override: $python_install_dir"
+fi
 
 packages=(
     autoconf
@@ -178,7 +208,11 @@ if [[ "$run_tests" == true ]]; then
 fi
 
 echo "Installing Blueman into $prefix..."
-"${sudo_cmd[@]}" make install
+install_args=()
+if [[ -n "$python_install_dir" ]]; then
+    install_args+=("pythondir=$python_install_dir" "pyexecdir=$python_install_dir")
+fi
+"${sudo_cmd[@]}" make install "${install_args[@]}"
 
 schema_dir="$prefix/share/glib-2.0/schemas"
 if command -v glib-compile-schemas >/dev/null 2>&1 && [[ -d "$schema_dir" ]]; then
