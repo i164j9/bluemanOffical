@@ -10,10 +10,12 @@ from blueman.gui.manager.ManagerDeviceMenu import ManagerDeviceMenu
 from blueman.Functions import adapter_path_to_name
 
 import gi
+
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
-from gi.repository import GLib
-from gi.repository import Gio
+from gi.repository import Gtk  # pyright: ignore[reportAttributeAccessIssue]  # pylint: disable=wrong-import-position
+from gi.repository import GLib  # pyright: ignore[reportAttributeAccessIssue]
+from gi.repository import Gio  # pyright: ignore[reportAttributeAccessIssue]
+
 
 if TYPE_CHECKING:
     from blueman.main.Manager import Blueman

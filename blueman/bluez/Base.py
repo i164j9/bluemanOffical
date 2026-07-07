@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, TypeVar, cast
 from collections.abc import Callable
 from blueman.bluemantyping import GSignals, ObjectPath
 
@@ -8,21 +8,25 @@ from blueman.bluez.errors import parse_dbus_error, BluezDBusException
 import logging
 
 DBUS_TIMEOUT = 10 * 1_000
+DBUS_CALL_FLAGS_NONE = cast(Gio.DBusCallFlags, 0)
+
+_TBase = TypeVar("_TBase", bound="Base")
 
 
 class BaseMeta(GObjectMeta):
-    def __call__(cls, *args: object, **kwargs: str) -> "Base":
+    def __call__(cls: type[_TBase], *args: object, **kwargs: object) -> _TBase:  # pyright: ignore[reportGeneralTypeIssues]
         if not hasattr(cls, "__instances__"):
             cls.__instances__: dict[str, "Base"] = {}
 
-        path = kwargs.get('obj_path')
+        path = kwargs.get("obj_path")
         if path is None:
             path = getattr(cls, "_obj_path")
+        path = cast(str, path)
 
         if path in cls.__instances__:
-            return cls.__instances__[path]
+            return cast(_TBase, cls.__instances__[path])
 
-        instance: "Base" = super().__call__(*args, **kwargs)
+        instance = cast(_TBase, super().__call__(*args, **kwargs))
         cls.__instances__[path] = instance
 
         return instance
@@ -40,15 +44,23 @@ class Base(GObject.Object, metaclass=BaseMeta):
 
     _interface_name: str
 
-    connect_signal = GObject.GObject.connect
-    disconnect_signal = GObject.GObject.disconnect
+    def connect_signal(
+        self: _TBase,
+        signal_name: str,
+        handler: Callable[[_TBase, str, object, str], Any],
+        *args: object,
+    ) -> int:
+        return cast(int, cast(Any, GObject.GObject.connect)(self, signal_name, handler, *args))
+
+    def disconnect_signal(self, handler_id: int) -> None:
+        GObject.GObject.disconnect(self, handler_id)
 
     def __init__(self, *, obj_path: ObjectPath):
         super().__init__()
 
         self.__proxy = Gio.DBusProxy.new_for_bus_sync(
             self.__bus_type,
-            Gio.DBusProxyFlags.NONE,
+            Gio.DBusProxyFlags(0),
             None,
             self.__name,
             obj_path,
@@ -94,7 +106,7 @@ class Base(GObject.Object, metaclass=BaseMeta):
                 else:
                     logging.error(f"Unhandled error for {self.__proxy.get_interface_name()}.{method}", exc_info=True)
 
-        self.__proxy.call(method, param, Gio.DBusCallFlags.NONE, DBUS_TIMEOUT, None,
+        self.__proxy.call(method, param, DBUS_CALL_FLAGS_NONE, DBUS_TIMEOUT, None,
                           callback, reply_handler, error_handler)
 
     def get(self, name: str) -> Any:
@@ -102,7 +114,7 @@ class Base(GObject.Object, metaclass=BaseMeta):
             prop = self.__proxy.call_sync(
                 'org.freedesktop.DBus.Properties.Get',
                 GLib.Variant('(ss)', (self._interface_name, name)),
-                Gio.DBusCallFlags.NONE,
+                DBUS_CALL_FLAGS_NONE,
                 DBUS_TIMEOUT,
                 None)
             return prop.unpack()[0]
@@ -120,7 +132,7 @@ class Base(GObject.Object, metaclass=BaseMeta):
         param = GLib.Variant('(ssv)', (self._interface_name, name, v))
         self.__proxy.call('org.freedesktop.DBus.Properties.Set',
                           param,
-                          Gio.DBusCallFlags.NONE,
+                          DBUS_CALL_FLAGS_NONE,
                           DBUS_TIMEOUT,
                           None)
 
@@ -131,7 +143,7 @@ class Base(GObject.Object, metaclass=BaseMeta):
         param = GLib.Variant('(s)', (self._interface_name,))
         res = self.__proxy.call_sync('org.freedesktop.DBus.Properties.GetAll',
                                      param,
-                                     Gio.DBusCallFlags.NONE,
+                                     DBUS_CALL_FLAGS_NONE,
                                      DBUS_TIMEOUT,
                                      None)
 

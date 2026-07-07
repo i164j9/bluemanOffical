@@ -1,4 +1,5 @@
 {
+  "stubPath": "stubs",
   "reportIncompatibleMethodOverride": "none",
   "ignore": [
     "blueman/main/Applet.py",

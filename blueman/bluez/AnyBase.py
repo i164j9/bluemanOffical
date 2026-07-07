@@ -1,4 +1,6 @@
 import weakref
+from typing import Any, TypeVar, cast
+from collections.abc import Callable
 
 from gi.repository import GObject, GLib
 from gi.repository import Gio
@@ -6,13 +8,24 @@ from gi.repository import Gio
 from blueman.bluemantyping import GSignals
 
 
+_TAnyBase = TypeVar("_TAnyBase", bound="AnyBase")
+
+
 class AnyBase(GObject.GObject):
     __gsignals__: GSignals = {
         'property-changed': (GObject.SignalFlags.NO_HOOKS, None, (str, object, str))
     }
 
-    connect_signal = GObject.GObject.connect
-    disconnect_signal = GObject.GObject.disconnect
+    def connect_signal(
+        self: _TAnyBase,
+        signal_name: str,
+        handler: Callable[[_TAnyBase, str, object, str], Any],
+        *args: object,
+    ) -> int:
+        return cast(int, GObject.GObject.connect(self, signal_name, handler, *args))
+
+    def disconnect_signal(self, handler_id: int) -> None:
+        GObject.GObject.disconnect(self, handler_id)
 
     def __init__(self, interface_name: str):
         super().__init__()

@@ -1,23 +1,31 @@
+"""Serial port connection management plugin for the applet."""
+
+# pylint: disable=invalid-name
+
 from gettext import gettext as _
 from dataclasses import dataclass
-from typing import Any
-import shlex
-from blueman.bluemantyping import ObjectPath, BtAddress
-
-from blueman.plugins.AppletPlugin import AppletPlugin
-from blueman.gui.Notification import Notification
-from blueman.Sdp import SERIAL_PORT_SVCLASS_ID
-from blueman.plugins.applet.DBusService import RFCOMMConnectedListener
-from blueman.services.Functions import get_services
-from _blueman import rfcomm_list, RFCOMMError
-from subprocess import Popen
 import logging
 import os
+import shlex
 import signal
-from blueman.bluez.Device import Device
+from subprocess import Popen
+from typing import Any, cast
+
+import _blueman
 from gi.repository import GLib
 
+from blueman.bluemantyping import BtAddress, ObjectPath
+from blueman.bluez.Device import Device
+from blueman.gui.Notification import Notification
+from blueman.plugins.AppletPlugin import AppletPlugin
+from blueman.plugins.applet.DBusService import RFCOMMConnectedListener
+from blueman.Sdp import SERIAL_PORT_SVCLASS_ID
+from blueman.services.Functions import get_services
 from blueman.services.meta import SerialService
+
+
+rfcomm_list = getattr(_blueman, "rfcomm_list")
+RFCOMMError = getattr(_blueman, "RFCOMMError")
 
 
 @dataclass
@@ -70,7 +78,11 @@ class SerialManager(AppletPlugin, RFCOMMConnectedListener):
 
     def on_rfcomm_connected(self, service: SerialService, port: str) -> None:
         device = service.device
-        if SERIAL_PORT_SVCLASS_ID == service.short_uuid:
+        short_uuid = service.short_uuid
+        if short_uuid is None:
+            return
+
+        if SERIAL_PORT_SVCLASS_ID == short_uuid:
             Notification(_("Serial port connected"),
                          _("Serial port service on device <b>%s</b> now will be available via <b>%s</b>") % (
                          device.display_name, port),
@@ -79,7 +91,7 @@ class SerialManager(AppletPlugin, RFCOMMConnectedListener):
             self.call_script(device['Address'],
                              device.display_name,
                              service.name,
-                             service.short_uuid,
+                             short_uuid,
                              port)
 
     def terminate_all_scripts(self, address: BtAddress) -> None:
@@ -138,7 +150,7 @@ class SerialManager(AppletPlugin, RFCOMMConnectedListener):
             self._stop_script(address, node)
             script_map = self.scripts.setdefault(address, {})
 
-        watch_id = GLib.child_watch_add(process.pid, self.on_script_closed, (address, node))
+        watch_id = cast(int, GLib.child_watch_add(process.pid, self.on_script_closed, (address, node)))
         script_map[node] = ScriptProcess(process=process, watch_id=watch_id)
 
     def call_script(self, address: BtAddress, name: str, sv_name: str, uuid16: int, node: str) -> None:

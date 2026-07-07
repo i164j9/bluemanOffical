@@ -1,10 +1,26 @@
+"""Device list widget and helpers for the manager window."""
+
+# pylint: disable=invalid-name
+
 from gettext import gettext as _
 from typing import TYPE_CHECKING, Any, cast
 from collections.abc import Callable
 from types import SimpleNamespace
 import html
 import logging
+
+import gi
 import cairo
+import _blueman
+
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk  # pylint: disable=wrong-import-position
+from gi.repository import GLib  # pylint: disable=wrong-import-position
+from gi.repository import GObject  # pylint: disable=wrong-import-position
+from gi.repository import Gio  # pylint: disable=wrong-import-position
+from gi.repository import Gdk  # pylint: disable=wrong-import-position
+from gi.repository import GdkPixbuf  # pylint: disable=wrong-import-position
+from gi.repository import Pango  # pylint: disable=wrong-import-position
 
 from blueman.bluemantyping import ObjectPath, BtAddress
 from blueman.bluez.Adapter import Adapter
@@ -27,20 +43,16 @@ from blueman.Sdp import (
     ServiceUUID,
 )
 from blueman.gui.GtkAnimation import TreeRowFade, CellFade, AnimBase
-from _blueman import ConnInfoReadError, conn_info
-
-import gi
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
-from gi.repository import GLib
-from gi.repository import GObject
-from gi.repository import Gio
-from gi.repository import Gdk
-from gi.repository import GdkPixbuf
-from gi.repository import Pango
 
 if TYPE_CHECKING:
     from blueman.main.Manager import Blueman
+
+
+CairoImageSurface = Any
+CairoContext = getattr(cairo, "Context")
+ConnInfo = Any
+ConnInfoReadError = getattr(_blueman, "ConnInfoReadError")
+conn_info = getattr(_blueman, "conn_info")
 
 
 DOUBLE_BUTTON_PRESS = cast(
@@ -60,7 +72,7 @@ DEST_DEFAULTS_ALL = cast(
 class SurfaceObject(GObject.Object):
     __gtype_name__ = "SurfaceObject"
 
-    def __init__(self, surface: cairo.ImageSurface) -> None:
+    def __init__(self, surface: CairoImageSurface) -> None:
         super().__init__()
         self.surface = surface
 
@@ -79,7 +91,7 @@ def apply_row_state_update(
     return True
 
 
-def get_power_level_values(batteries: dict[str, Battery], device: Device, cinfo: conn_info) -> dict[str, float]:
+def get_power_level_values(batteries: dict[str, Battery], device: Device, cinfo: ConnInfo) -> dict[str, float]:
     bars: dict[str, float] = {}
 
     obj_path = device.get_object_path()
@@ -418,7 +430,7 @@ class ManagerDeviceList(DeviceList):
         Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).set_text(row["device"]["Address"], -1)
         return True
 
-    def _load_surface(self, icon_name: str, size: int) -> cairo.ImageSurface:
+    def _load_surface(self, icon_name: str, size: int) -> CairoImageSurface:
         window = self.get_window()
         scale = self.get_scale_factor()
         icon_info = self.icon_theme.lookup_icon_for_scale(icon_name, size, scale, Gtk.IconLookupFlags.FORCE_SIZE)
@@ -432,15 +444,15 @@ class ManagerDeviceList(DeviceList):
                 Gtk.IconLookupFlags.FORCE_SIZE
             )
             assert missing_icon_info is not None
-            return cast(cairo.ImageSurface, missing_icon_info.load_surface(window))
+            return cast(CairoImageSurface, missing_icon_info.load_surface(window))
         else:
-            return cast(cairo.ImageSurface, icon_info.load_surface(window))
+            return cast(CairoImageSurface, icon_info.load_surface(window))
 
     def _make_device_icon(self, icon_name: str, is_paired: bool, is_connected: bool, is_trusted: bool,
-                          is_blocked: bool) -> cairo.ImageSurface:
+                          is_blocked: bool) -> CairoImageSurface:
         scale = self.get_scale_factor()
         target = self._load_surface(icon_name, 48)
-        ctx = cairo.Context(target)
+        ctx = CairoContext(target)
 
         if is_connected or is_paired:
             icon = "blueman-connected-emblem" if is_connected else "blueman-paired-emblem"
@@ -450,7 +462,6 @@ class ManagerDeviceList(DeviceList):
 
         if is_trusted:
             trusted_surface = self._load_surface("blueman-trusted-emblem", 16)
-            assert isinstance(target, cairo.ImageSurface)
             height = target.get_height()
             mini_height = trusted_surface.get_height()
             y = height / scale - mini_height / scale - 1 / scale
@@ -460,7 +471,6 @@ class ManagerDeviceList(DeviceList):
 
         if is_blocked:
             blocked_surface = self._load_surface("blueman-blocked-emblem", 16)
-            assert isinstance(target, cairo.ImageSurface)
             width = target.get_width()
             mini_width = blocked_surface.get_width()
             ctx.set_source_surface(blocked_surface, (width - mini_width - 1) / scale, 1 / scale)
@@ -555,7 +565,7 @@ class ManagerDeviceList(DeviceList):
         if not should_monitor_power_levels(device):
             # Avoid legacy conn_info polling on Bluetooth audio devices; the periodic
             # HCI reads can disrupt active playback on some adapters/stacks.
-            self._update_power_levels(tree_iter, device, cast(conn_info, SimpleNamespace(failed=True)))
+            self._update_power_levels(tree_iter, device, cast(ConnInfo, SimpleNamespace(failed=True)))
             return
 
         assert self.Adapter is not None
@@ -574,7 +584,7 @@ class ManagerDeviceList(DeviceList):
         GLib.timeout_add(1000, self._check_power_levels, r, cinfo, device["Address"])
         self._monitored_devices.add(device["Address"])
 
-    def _check_power_levels(self, row_ref: Gtk.TreeRowReference, cinfo: conn_info, address: BtAddress) -> bool:
+    def _check_power_levels(self, row_ref: Gtk.TreeRowReference, cinfo: ConnInfo, address: BtAddress) -> bool:
         if not row_ref.valid():
             logging.warning("stopping monitor (row does not exist)")
             cinfo.deinit()
@@ -640,7 +650,7 @@ class ManagerDeviceList(DeviceList):
         elif key == "Blocked":
             self.set(tree_iter, blocked=value)
 
-    def _update_power_levels(self, tree_iter: Gtk.TreeIter, device: Device, cinfo: conn_info) -> None:
+    def _update_power_levels(self, tree_iter: Gtk.TreeIter, device: Device, cinfo: ConnInfo) -> None:
         row = self.get(tree_iter, "cell_fader", "battery", "lq", "rssi", "tpl")
 
         bars = get_power_level_values(self._batteries, device, cinfo)

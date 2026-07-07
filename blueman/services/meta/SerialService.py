@@ -4,14 +4,20 @@ import os
 import subprocess
 from collections.abc import Callable
 
+import _blueman
 from gi.repository import Gio, GLib
 
 from blueman.bluez.Adapter import Adapter
-from _blueman import create_rfcomm_device, get_rfcomm_channel, RFCOMMError, rfcomm_list
 from blueman.Service import Service, Instance
 from blueman.bluez.Device import Device
 from blueman.main.DBusProxies import Mechanism
 from blueman.Constants import RFCOMM_WATCHER_PATH
+
+
+create_rfcomm_device = getattr(_blueman, "create_rfcomm_device")
+get_rfcomm_channel = getattr(_blueman, "get_rfcomm_channel")
+RFCOMMError = getattr(_blueman, "RFCOMMError")
+rfcomm_list = getattr(_blueman, "rfcomm_list")
 
 
 class SerialService(Service):
@@ -82,7 +88,7 @@ class SerialService(Service):
     def connect(
         self,
         reply_handler: Callable[[int], None] | None = None,
-        error_handler: Callable[[RFCOMMError], None] | None = None
+        error_handler: Callable[[Exception], None] | None = None
     ) -> bool:
         # We expect this service to have a reserved UUID
         uuid = self.short_uuid
@@ -102,7 +108,7 @@ class SerialService(Service):
             filename = f"/dev/rfcomm{port_id:d}"
             logging.info('Starting rfcomm watcher as root')
             Mechanism().OpenRFCOMM('(n)', port_id)
-            mon = Gio.File.new_for_path(filename).monitor_file(Gio.FileMonitorFlags.NONE)
+            mon = Gio.File.new_for_path(filename).monitor_file(Gio.FileMonitorFlags(0))
             self._handlerids[port_id] = mon.connect('changed', self.on_file_changed, port_id)
             self.try_replace_root_watcher(mon, filename, port_id)
 
@@ -125,7 +131,7 @@ class SerialService(Service):
             Mechanism().CloseRFCOMM('(n)', port_id)
         except GLib.Error as e:
             if error_handler:
-                error_handler(e.message)
+                error_handler(str(e))
             else:
                 raise
 
