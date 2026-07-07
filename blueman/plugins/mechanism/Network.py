@@ -28,7 +28,7 @@ class Network(MechanismPlugin):
 
         self.confirm_authorization(caller, "org.blueman.dhcp.client")
 
-        from blueman.main.DhcpClient import DhcpClient
+        from blueman.main.DhcpClient import DhcpClient, DhcpClientError
 
         def dh_error(_dh: DhcpClient, num: int) -> None:
             err(num)
@@ -43,8 +43,9 @@ class Network(MechanismPlugin):
         dh.connect("connected", dh_connected)
         try:
             dh.run()
-        except Exception as e:
+        except (DhcpClientError, OSError) as e:
             err(e)
+            self.timer.resume()
 
     def _enable_network(self, ip_address: str, netmask: str, dhcp_handler: str, address_changed: bool,
                         caller: str) -> None:

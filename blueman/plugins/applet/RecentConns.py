@@ -39,6 +39,9 @@ class RecentConns(AppletPlugin, PowerStateListener):
     __icon__ = "document-open-recent-symbolic"
     __description__ = _("Provides a menu item that contains last used connections for quick access")
     __author__ = "Walmis"
+    __menuitems: list[SubmenuItemDict]
+    _mitems: list[MenuItem]
+    _active: bool
 
     __gsettings__ = {
         "schema": "org.blueman.plugins.recentconns",
@@ -55,32 +58,33 @@ class RecentConns(AppletPlugin, PowerStateListener):
     }
 
     def on_load(self) -> None:
+        self._active = True
         self.__menuitems: list[SubmenuItemDict] = []
 
         self._rebuild_menu()
 
-    def on_power_state_changed(self, manager: PowerManager, state: bool) -> None:
+    def on_power_state_changed(self, _manager: PowerManager, _state: bool) -> None:
         self._rebuild()
 
     def on_unload(self) -> None:
+        self._active = False
         self.parent.Plugins.Menu.unregister(self)
+
+    def _clear_menu_items(self) -> None:
+        self.__menuitems = []
+        self._rebuild_menu()
 
     def _rebuild(self) -> None:
         if 'PowerManager' in self.parent.Plugins.get_loaded() and \
                 not self.parent.Plugins.PowerManager.get_bluetooth_status():
-            for mitem in self._mitems:
-                mitem.set_sensitive(False)
+            self._clear_menu_items()
             return
 
         items = self._get_items()
 
         if len(items) == 0:
-            for mitem in self._mitems:
-                mitem.set_sensitive(False)
+            self._clear_menu_items()
             return
-
-        for mitem in self._mitems:
-            mitem.set_sensitive(True)
 
         self.__menuitems = [self._build_menu_item(item) for item in items[:self.get_option("max-items")]]
 
@@ -90,8 +94,7 @@ class RecentConns(AppletPlugin, PowerStateListener):
         if state:
             self._rebuild()
         else:
-            for mitem in self._mitems:
-                mitem.set_sensitive(False)
+            self._clear_menu_items()
 
     def on_device_created(self, path: str) -> None:
         self._rebuild()
@@ -107,7 +110,7 @@ class RecentConns(AppletPlugin, PowerStateListener):
 
     def notify(self, object_path: ObjectPath, uuid: str) -> None:
         device = Device(obj_path=object_path)
-        logging.info(f"{device} {uuid}")
+        logging.info("%s %s", device, uuid)
         try:
             adapter = self.parent.Manager.get_adapter(device['Adapter'])
         except DBusNoSuchAdapterError:
@@ -141,7 +144,7 @@ class RecentConns(AppletPlugin, PowerStateListener):
         self._rebuild()
 
     def on_item_activated(self, item: Item) -> None:
-        logging.info(f"Connect {item['address']} {item['uuid']}")
+        logging.info("Connect %s %s", item["address"], item["uuid"])
 
         assert item["mitem"] is not None
 
@@ -149,6 +152,9 @@ class RecentConns(AppletPlugin, PowerStateListener):
         self.parent.Plugins.Menu.on_menu_changed()
 
         def reply() -> None:
+            if not self._active:
+                return
+
             assert item["mitem"] is not None  # https://github.com/python/mypy/issues/2608
             Notification(_("Connected"), _("Connected to %s") % item["mitem"]["text"],
                          icon_name=item["icon"]).show()
@@ -156,6 +162,9 @@ class RecentConns(AppletPlugin, PowerStateListener):
             self.parent.Plugins.Menu.on_menu_changed()
 
         def err(reason: Exception | str) -> None:
+            if not self._active:
+                return
+
             Notification(_("Failed to connect"), str(reason).split(": ")[-1],
                          icon_name="dialog-error").show()
             assert item["mitem"] is not None  # https://github.com/python/mypy/issues/2608
@@ -171,7 +180,7 @@ class RecentConns(AppletPlugin, PowerStateListener):
             "markup": True,
             "icon_name": item["mitem"]["icon_name"] if item["mitem"] is not None else item["icon"],
             "sensitive": item["device"] is not None,
-            "tooltip": None if item["device"] is None else _("Adapter for this connection is not available"),
+            "tooltip": _("Adapter for this connection is not available") if item["device"] is None else None,
             "callback": (item["mitem"]["callback"] if item["mitem"] is not None
                          else cast(Callable[[], None], lambda itm=item: self.on_item_activated(itm)))
         }

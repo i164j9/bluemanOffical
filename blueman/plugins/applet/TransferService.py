@@ -40,6 +40,10 @@ class PendingTransferDict(TypedDict):
 NotificationType = Union[_NotificationBubble, _NotificationDialog]
 
 
+def is_large_transfer(size: int | None) -> bool:
+    return size is None or size > 350000
+
+
 class ObexErrorRejected(DbusError):
     _name = "org.bluez.obex.Error.Rejected"
 
@@ -121,12 +125,17 @@ class Agent(DbusService):
             if self._pending_transfer == pending_transfer:
                 self._pending_transfer = None
 
-        transfer = Transfer(obj_path=transfer_path)
-        session = Session(obj_path=transfer.session)
-        root = Path(session.root)
-        address = session.address
-        filename = transfer.name
-        size = transfer.size
+        try:
+            transfer = Transfer(obj_path=transfer_path)
+            session = Session(obj_path=transfer.session)
+            root = Path(session.root)
+            address = session.address
+            filename = transfer.name
+            size = transfer.size
+        except (BluezDBusException, GLib.Error):
+            logging.error("Failed to inspect incoming transfer %s", transfer_path, exc_info=True)
+            err(ObexErrorRejected("Rejected"))
+            return
 
         try:
             adapter = self._applet.Manager.get_adapter(session.source)
@@ -155,7 +164,7 @@ class Agent(DbusService):
             )
             notification.show()
         # Device is trusted or was already allowed, larger file -> display a notification, but auto-accept
-        elif size and size > 350000:
+        elif is_large_transfer(size):
             self._notification = notification = Notification(
                 _("Receiving file"),
                 _("Receiving file %(0)s from %(1)s") % {"0": "<b>" + escape(filename) + "</b>",
@@ -197,16 +206,35 @@ class TransferService(AppletPlugin):
     _notification = None
     _handlerids: list[int] = []
 
+    def _reset_transfer_counters(self) -> None:
+        self._silent_transfers = 0
+        self._normal_transfers = 0
+
     def _close_notification(self) -> None:
         if self._notification:
             self._notification.close()
             self._notification = None
+
+    def _disconnect_manager(self) -> None:
+        if self._manager:
+            for sigid in self._handlerids:
+                self._manager.disconnect(sigid)
+
+        self._manager = None
+        self._handlerids = []
 
     def on_load(self) -> None:
         def on_reset(_action: str) -> None:
             self._close_notification()
             self._config.reset('shared-path')
             logging.info('Reset share path')
+
+        self._reset_transfer_counters()
+        self._manager = None
+        self._agent = None
+        self._watch = None
+        self._notification = None
+        self._handlerids = []
 
         self._config = Gio.Settings(schema_id="org.blueman.transfer")
 
@@ -227,9 +255,12 @@ class TransferService(AppletPlugin):
     def on_unload(self) -> None:
         if self._watch:
             Gio.bus_unwatch_name(self._watch)
+            self._watch = None
 
+        self._disconnect_manager()
         self._close_notification()
         self._unregister_agent()
+        self._reset_transfer_counters()
 
     def _make_share_path(self) -> tuple[Path, bool]:
         config_path = Path(self._config["shared-path"])
@@ -272,6 +303,8 @@ class TransferService(AppletPlugin):
     def _on_dbus_name_appeared(self, _connection: Gio.DBusConnection, name: str, owner: str) -> None:
         logging.info("%s %s", name, owner)
 
+        self._disconnect_manager()
+
         try:
             self._manager = Manager()
         except GLib.Error:
@@ -287,11 +320,7 @@ class TransferService(AppletPlugin):
     def _on_dbus_name_vanished(self, _connection: Gio.DBusConnection, name: str) -> None:
         logging.info("%s not running or was stopped", name)
 
-        if self._manager:
-            for sigid in self._handlerids:
-                self._manager.disconnect(sigid)
-            self._manager = None
-            self._handlerids = []
+        self._disconnect_manager()
 
         if self._agent:
             self._agent.destroy()
@@ -299,6 +328,7 @@ class TransferService(AppletPlugin):
             self._agent = None
 
         self._close_notification()
+        self._reset_transfer_counters()
 
     def _on_transfer_started(self, _manager: Manager, transfer_path: ObjectPath) -> None:
         if not self._agent or transfer_path not in self._agent.transfers:
@@ -306,8 +336,7 @@ class TransferService(AppletPlugin):
             return
 
         size = self._agent.transfers[transfer_path]['size']
-        assert size is not None
-        if size > 350000:
+        if is_large_transfer(size):
             self._normal_transfers += 1
         else:
             self._silent_transfers += 1
@@ -365,8 +394,7 @@ class TransferService(AppletPlugin):
                 icon_name="blueman"
             )
             n.show()
-            assert attributes['size'] is not None
-            if attributes['size'] > 350000:
+            if is_large_transfer(attributes['size']):
                 self._normal_transfers -= 1
             else:
                 self._silent_transfers -= 1
@@ -396,3 +424,5 @@ class TransferService(AppletPlugin):
                                               icon_name="blueman")
             self._add_open(self._notification, _("Open Location"), share_path)
             self._notification.show()
+
+        self._reset_transfer_counters()

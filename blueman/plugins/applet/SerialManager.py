@@ -1,5 +1,7 @@
 from gettext import gettext as _
-from typing import Dict, Any, Tuple  # noqa: F401
+from dataclasses import dataclass
+from typing import Any
+import shlex
 from blueman.bluemantyping import ObjectPath, BtAddress
 
 from blueman.plugins.AppletPlugin import AppletPlugin
@@ -16,6 +18,12 @@ from blueman.bluez.Device import Device
 from gi.repository import GLib
 
 from blueman.services.meta import SerialService
+
+
+@dataclass
+class ScriptProcess:
+    process: "Popen[Any]"
+    watch_id: int
 
 
 class SerialManager(AppletPlugin, RFCOMMConnectedListener):
@@ -38,19 +46,21 @@ class SerialManager(AppletPlugin, RFCOMMConnectedListener):
                              "Upon device disconnection the script will be sent a HUP signal</span>")},
     }
 
-    scripts: dict[BtAddress, dict[str, "Popen[Any]"]] = {}
+    scripts: dict[BtAddress, dict[str, ScriptProcess]] = {}
 
     def on_load(self) -> None:
         self.scripts = {}
 
     def on_unload(self) -> None:
-        for bdaddr in self.scripts.keys():
+        for bdaddr in list(self.scripts):
             self.terminate_all_scripts(bdaddr)
+        self.scripts = {}
 
     def on_delete(self) -> None:
         logging.debug("Terminating any running scripts")
-        for bdaddr in self.scripts:
+        for bdaddr in list(self.scripts):
             self.terminate_all_scripts(bdaddr)
+        self.scripts = {}
 
     def on_device_property_changed(self, path: ObjectPath, key: str, value: Any) -> None:
         if key == "Connected" and not value:
@@ -73,44 +83,76 @@ class SerialManager(AppletPlugin, RFCOMMConnectedListener):
                              port)
 
     def terminate_all_scripts(self, address: BtAddress) -> None:
-        if address not in self.scripts:
+        script_map = self.scripts.get(address)
+        if not script_map:
             # Script already terminated or failed to start
             return
 
-        for p in self.scripts[address].values():
-            logging.info(f"Sending HUP to {p.pid}")
-            try:
-                os.killpg(p.pid, signal.SIGHUP)
-            except ProcessLookupError:
-                logging.debug(f"No process found for pid {p.pid}")
+        for node in list(script_map):
+            self._stop_script(address, node)
+
+        self.scripts.pop(address, None)
+
+    def _stop_script(self, address: BtAddress, node: str) -> None:
+        script_map = self.scripts.get(address)
+        if not script_map:
+            return
+
+        entry = script_map.pop(node, None)
+        if entry is None:
+            return
+
+        GLib.source_remove(entry.watch_id)
+        logging.info("Sending HUP to %s", entry.process.pid)
+
+        try:
+            os.killpg(entry.process.pid, signal.SIGHUP)
+        except ProcessLookupError:
+            logging.debug("No process found for pid %s", entry.process.pid)
+
+        if not script_map:
+            self.scripts.pop(address, None)
+
+    def _remove_script(self, address: BtAddress, node: str, pid: int) -> None:
+        script_map = self.scripts.get(address)
+        if not script_map:
+            return
+
+        entry = script_map.get(node)
+        if entry is None or entry.process.pid != pid:
+            return
+
+        del script_map[node]
+        if not script_map:
+            del self.scripts[address]
 
     def on_script_closed(self, pid: int, _cond: int, address_node: tuple[BtAddress, str]) -> None:
         address, node = address_node
-        del self.scripts[address][node]
-        logging.info(f"Script with PID {pid} closed")
+        self._remove_script(address, node, pid)
+        logging.info("Script with PID %s closed", pid)
 
     def manage_script(self, address: BtAddress, node: str, process: "Popen[Any]") -> None:
-        if address not in self.scripts:
-            self.scripts[address] = {}
+        script_map = self.scripts.setdefault(address, {})
 
-        if node in self.scripts[address]:
-            self.scripts[address][node].terminate()
+        if node in script_map:
+            self._stop_script(address, node)
+            script_map = self.scripts.setdefault(address, {})
 
-        self.scripts[address][node] = process
-        GLib.child_watch_add(process.pid, self.on_script_closed, (address, node))
+        watch_id = GLib.child_watch_add(process.pid, self.on_script_closed, (address, node))
+        script_map[node] = ScriptProcess(process=process, watch_id=watch_id)
 
     def call_script(self, address: BtAddress, name: str, sv_name: str, uuid16: int, node: str) -> None:
         c = self.get_option("script")
         if c and c != "":
-            args = c.split(" ")
             try:
+                args = shlex.split(c)
                 args += [address, name, sv_name, f"{uuid16:#x}", node]
                 logging.debug(" ".join(args))
-                p = Popen(args, preexec_fn=lambda: os.setpgid(0, 0))
+                p = Popen(args, start_new_session=True)
 
                 self.manage_script(address, node, p)
 
-            except Exception as e:
+            except (OSError, ValueError) as e:
                 logging.debug(str(e))
                 Notification(_("Serial port connection script failed"),
                              _("There was a problem launching script %s\n"
@@ -118,11 +160,14 @@ class SerialManager(AppletPlugin, RFCOMMConnectedListener):
                              icon_name="blueman-serial").show()
 
     def on_rfcomm_disconnect(self, port: int) -> None:
-        for bdaddr, scripts in self.scripts.items():
-            process = scripts.get(f"/dev/rfcomm{port:i}")
-            if process:
-                logging.info(f"Sending HUP to {process.pid}")
-                os.killpg(process.pid, signal.SIGHUP)
+        for scripts in self.scripts.values():
+            entry = scripts.get(f"/dev/rfcomm{port:i}")
+            if entry:
+                logging.info("Sending HUP to %s", entry.process.pid)
+                try:
+                    os.killpg(entry.process.pid, signal.SIGHUP)
+                except ProcessLookupError:
+                    logging.debug("No process found for pid %s", entry.process.pid)
 
     def on_device_disconnect(self, device: Device) -> None:
         serial_services = [service for service in get_services(device) if isinstance(service, SerialService)]
@@ -133,13 +178,13 @@ class SerialManager(AppletPlugin, RFCOMMConnectedListener):
         try:
             active_ports = [rfcomm['id'] for rfcomm in rfcomm_list() if rfcomm['dst'] == device['Address']]
         except RFCOMMError as e:
-            logging.error(f"rfcomm_list failed with: {e}")
+            logging.error("rfcomm_list failed with: %s", e)
             return
 
         for port in active_ports:
             name = f"/dev/rfcomm{port:d}"
             try:
-                logging.info(f"Disconnecting {name}")
+                logging.info("Disconnecting %s", name)
                 serial_services[0].disconnect(port)
             except GLib.Error:
-                logging.error(f"Failed to disconnect {name}", exc_info=True)
+                logging.error("Failed to disconnect %s", name, exc_info=True)

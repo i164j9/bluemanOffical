@@ -7,6 +7,10 @@ from blueman.Functions import have, get_local_interfaces
 from blueman.bluemantyping import GSignals
 
 
+class DhcpClientError(Exception):
+    pass
+
+
 class DhcpClient(GObject.GObject):
     __gsignals__: GSignals = {
         # arg: interface name eg. ppp0
@@ -21,6 +25,8 @@ class DhcpClient(GObject.GObject):
     ]
 
     querying: list[str] = []
+    _client: subprocess.Popen[bytes]
+    _timeout_source_id: int | None
 
     def __init__(self, interface: str, timeout: int = 30) -> None:
         """The interface name has to be trusted / sanitized!"""
@@ -28,6 +34,7 @@ class DhcpClient(GObject.GObject):
 
         self._interface = interface
         self._timeout = timeout
+        self._timeout_source_id = None
 
         self._command = None
         for command in self.COMMANDS:
@@ -38,19 +45,30 @@ class DhcpClient(GObject.GObject):
 
     def run(self) -> None:
         if not self._command:
-            raise Exception("No DHCP client found, please install dhclient, dhcpcd, or udhcpc")
+            raise DhcpClientError("No DHCP client found, please install dhclient, dhcpcd, or udhcpc")
 
         if self._interface in DhcpClient.querying:
-            raise Exception("DHCP already running on this interface")
+            raise DhcpClientError("DHCP already running on this interface")
         else:
             DhcpClient.querying.append(self._interface)
 
-        self._client = subprocess.Popen(self._command)
+        try:
+            self._client = subprocess.Popen(self._command)
+        except OSError:
+            DhcpClient.querying.remove(self._interface)
+            raise
+
         GLib.timeout_add(1000, self._check_client)
-        GLib.timeout_add(self._timeout * 1000, self._on_timeout)
+        self._timeout_source_id = GLib.timeout_add(self._timeout * 1000, self._on_timeout)
+
+    def _clear_timeout(self) -> None:
+        if self._timeout_source_id is not None:
+            GLib.source_remove(self._timeout_source_id)
+            self._timeout_source_id = None
 
     def _on_timeout(self) -> bool:
-        if not self._client.poll():
+        self._timeout_source_id = None
+        if self._client.poll() is None:
             logging.warning("Timeout reached, terminating DHCP client")
             self._client.terminate()
         return False
@@ -61,15 +79,17 @@ class DhcpClient(GObject.GObject):
         if status == 0:
             def complete() -> bool:
                 ip = netifs[self._interface][0]
-                logging.info(f"bound to {ip}")
+                logging.info("bound to %s", ip)
                 self.emit("connected", ip)
                 return False
 
+            self._clear_timeout()
             GLib.timeout_add(1000, complete)
             DhcpClient.querying.remove(self._interface)
             return False
         elif status:
-            logging.error(f"dhcp client failed with status code {status}")
+            self._clear_timeout()
+            logging.error("dhcp client failed with status code %s", status)
             self.emit("error-occurred", status)
             DhcpClient.querying.remove(self._interface)
             return False

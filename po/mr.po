@@ -203,7 +203,6 @@ msgstr "स्वच्छ करा (_R)"
 #: data/ui/rename-device.ui:42 data/ui/note.ui:27 blueman/main/Sendto.py:233
 #: blueman/gui/DeviceSelectorDialog.py:19
 #, fuzzy
-#| msgid "Cancelling"
 msgid "_Cancel"
 msgstr "रद्द करत आहे"
 
@@ -242,7 +241,6 @@ msgstr "<b>PAN आधार </b>"
 
 #: data/ui/services-network.ui:317
 #, fuzzy
-#| msgid "Dialup Networking (DUN)"
 msgid "Dial-up Networking"
 msgstr "Dialup Networking (DUN)"
 
@@ -256,7 +254,6 @@ msgstr "Network Access Point (NAP)"
 
 #: data/ui/services-network.ui:348
 #, fuzzy
-#| msgid "<b>PAN Support</b>"
 msgid "<b>NAP Support</b>"
 msgstr "<b>PAN आधार </b>"
 
@@ -615,7 +612,6 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceList.py:342
 #, fuzzy
-#| msgid "Rename device"
 msgid "Unnamed device"
 msgstr "डिव्हाइसचे नाव बदला"
 
@@ -639,13 +635,11 @@ msgstr "जुळले"
 
 #: blueman/gui/manager/ManagerDeviceList.py:571
 #, fuzzy
-#| msgid "Trust"
 msgid "Trusted"
 msgstr "विश्वासर्ह"
 
 #: blueman/gui/manager/ManagerDeviceList.py:573
 #, fuzzy
-#| msgid "Pair"
 msgid "Paired"
 msgstr "जोडी"
 
@@ -743,7 +737,6 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceMenu.py:206
 #, fuzzy
-#| msgid "Unknown"
 msgid "Unknown error"
 msgstr "अपरिचीत"
 
@@ -762,7 +755,6 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceMenu.py:303
 #, fuzzy
-#| msgid "<b>Disconnect:</b>"
 msgid "<b>_Disconnect</b>"
 msgstr "<b>जोडणी तोडा:</b>"
 
@@ -810,7 +802,6 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceMenu.py:400
 #, fuzzy
-#| msgid "Send files to this device"
 msgid "Block/Unblock this device"
 msgstr "साधन करीता फाइल पाठवा"
 
@@ -873,7 +864,6 @@ msgstr ""
 
 #: blueman/gui/applet/PluginDialog.py:267
 #, fuzzy
-#| msgid "Dependency issue"
 msgid "No dependencies"
 msgstr "आश्रितता वाद"
 
@@ -1517,7 +1507,6 @@ msgstr "Network Access Point"
 
 #: blueman/DeviceClass.py:242
 #, fuzzy
-#| msgid "Device"
 msgid "Mesh Device"
 msgstr "यंत्र"
 
@@ -1910,7 +1899,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:344
 #, fuzzy
-#| msgid "Plugins"
 msgid "Plug"
 msgstr "प्लगईन"
 
@@ -2006,7 +1994,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:367
 #, fuzzy
-#| msgid "Audio Sink"
 msgid "Generic Audio Sink"
 msgstr "ऑडियो सिंक"
 
@@ -2033,7 +2020,6 @@ msgstr "स्मार्ट फोन "
 
 #: blueman/DeviceClass.py:373
 #, fuzzy
-#| msgid "Audio Source"
 msgid "Generic Audio Source"
 msgstr "ध्वनी स्त्रोत"
 
@@ -2055,7 +2041,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:379
 #, fuzzy
-#| msgid "Service:"
 msgid "Service Desk"
 msgstr "सेवा:"
 
@@ -2069,7 +2054,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:382
 #, fuzzy
-#| msgid "Audio Profile"
 msgid "Auditorium"
 msgstr "ऑडियो प्रोफाइल"
 
@@ -2248,7 +2232,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:427
 #, fuzzy
-#| msgid "Receiving file"
 msgid "Receiver"
 msgstr "फाईल प्राप्त करीत आहे"
 
@@ -3203,10 +3186,6 @@ msgstr "तुम्हाला गणक शून्य करायचा �
 
 #: blueman/plugins/applet/NetUsage.py:289
 #, fuzzy
-#| msgid ""
-#| "Allows you to monitor your (mobile broadband) network traffic usage. "
-#| "Useful for limited data access plans. This plugin tracks every device "
-#| "seperately."
 msgid ""
 "Allows you to monitor your (mobile broadband) network traffic usage. Useful "
 "for limited data access plans. This plugin tracks every device separately."
@@ -3604,7 +3583,6 @@ msgstr ""
 
 #: blueman/plugins/applet/PulseAudioProfile.py:83
 #, fuzzy, python-format
-#| msgid "Audio Profile"
 msgid "Audio Profiles for %s"
 msgstr "ऑडियो प्रोफाइल"
 

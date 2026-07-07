@@ -3489,13 +3489,11 @@ msgstr "提供 StatusNotifierItem 以顯示狀態列圖示"
 
 #: blueman/plugins/applet/PulseAudioProfile.py:19
 #, fuzzy
-#| msgid "Adds standard menu items to the status icon menu"
 msgid "Adds audio profile selector to the status icon menu"
 msgstr "在狀態圖示選單中加入標準的選單選項"
 
 #: blueman/plugins/applet/PulseAudioProfile.py:83
 #, fuzzy, python-format
-#| msgid "Audio Profile"
 msgid "Audio Profiles for %s"
 msgstr "音訊設定"
 

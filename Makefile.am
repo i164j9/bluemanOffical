@@ -24,7 +24,7 @@ MAINTAINERCLEANFILES = 	\
 	aclocal.m4			\
 	configure			\
 	config.h.in			\
-	config.rpath			\
+	config.rpath		\
 	depcomp				\
 	missing				\
 	install-sh			\

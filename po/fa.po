@@ -259,7 +259,6 @@ msgstr "نقطه دسترسی شبکه (NAP)"
 
 #: data/ui/services-network.ui:348
 #, fuzzy
-#| msgid "<b>PAN Support</b>"
 msgid "<b>NAP Support</b>"
 msgstr "<b>پشتیبانی PAN</b>"
 
@@ -618,7 +617,6 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceList.py:342
 #, fuzzy
-#| msgid "Rename device"
 msgid "Unnamed device"
 msgstr "تغییر نام دستگاه"
 
@@ -641,13 +639,11 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceList.py:571
 #, fuzzy
-#| msgid "Trust"
 msgid "Trusted"
 msgstr "اعتماد کن"
 
 #: blueman/gui/manager/ManagerDeviceList.py:573
 #, fuzzy
-#| msgid "Pair"
 msgid "Paired"
 msgstr "جفت"
 
@@ -745,7 +741,6 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceMenu.py:206
 #, fuzzy
-#| msgid "Unknown"
 msgid "Unknown error"
 msgstr "ناشناخته"
 
@@ -1224,7 +1219,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:180
 #, fuzzy
-#| msgid "Server"
 msgid "Blade Server"
 msgstr "خدمت"
 
@@ -1474,13 +1468,11 @@ msgstr "شبکه گروهی"
 
 #: blueman/DeviceClass.py:241
 #, fuzzy
-#| msgid "Network Access Point (NAP)"
 msgid "Access Point"
 msgstr "نقطه دسترسی شبکه (NAP)"
 
 #: blueman/DeviceClass.py:242
 #, fuzzy
-#| msgid "Device"
 msgid "Mesh Device"
 msgstr "دستگاه"
 
@@ -1870,7 +1862,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:344
 #, fuzzy
-#| msgid "Plugins"
 msgid "Plug"
 msgstr "متصل شونده‌ها"
 
@@ -2012,7 +2003,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:379
 #, fuzzy
-#| msgid "Service:"
 msgid "Service Desk"
 msgstr "خدمت:"
 

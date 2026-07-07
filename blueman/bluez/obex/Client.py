@@ -18,18 +18,28 @@ class Client(Base):
     def __init__(self) -> None:
         super().__init__(obj_path=self._obj_path)
 
-    def create_session(self, dest_addr: BtAddress, source_addr: BtAddress = BtAddress("00:00:00:00:00:00"),
-                       pattern: str = "opp") -> None:
+    def create_session(
+        self,
+        dest_addr: BtAddress,
+        source_addr: BtAddress | None = BtAddress("00:00:00:00:00:00"),
+        pattern: str = "opp",
+        channel: int | None = None,
+    ) -> None:
         def on_session_created(session_path: ObjectPath) -> None:
-            logging.info(f"{dest_addr} {source_addr} {pattern} {session_path}")
+            logging.info("%s %s %s %s %s", dest_addr, source_addr, pattern, channel, session_path)
 
         def on_session_failed(error: BluezDBusException) -> None:
-            logging.error(f"{dest_addr} {source_addr} {pattern} {error}")
+            logging.error("%s %s %s %s %s", dest_addr, source_addr, pattern, channel, error)
             self.emit("session-failed", error)
 
-        v_source_addr = GLib.Variant('s', source_addr)
         v_pattern = GLib.Variant('s', pattern)
-        param = GLib.Variant('(sa{sv})', (dest_addr, {"Source": v_source_addr, "Target": v_pattern}))
+        options: dict[str, GLib.Variant] = {"Target": v_pattern}
+        if source_addr is not None:
+            options["Source"] = GLib.Variant('s', source_addr)
+        if channel is not None:
+            options["Channel"] = GLib.Variant('y', channel)
+
+        param = GLib.Variant('(sa{sv})', (dest_addr, options))
         self._call('CreateSession', param, reply_handler=on_session_created, error_handler=on_session_failed)
 
     def remove_session(self, session_path: ObjectPath) -> None:
@@ -37,7 +47,7 @@ class Client(Base):
             logging.info(session_path)
 
         def on_session_remove_failed(error: BluezDBusException) -> None:
-            logging.error(f"{session_path} {error}")
+            logging.error("%s %s", session_path, error)
 
         param = GLib.Variant('(o)', (session_path,))
         self._call('RemoveSession', param, reply_handler=on_session_removed,

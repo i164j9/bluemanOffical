@@ -207,7 +207,6 @@ msgstr "Đặt _lại"
 #: data/ui/rename-device.ui:42 data/ui/note.ui:27 blueman/main/Sendto.py:233
 #: blueman/gui/DeviceSelectorDialog.py:19
 #, fuzzy
-#| msgid "Cancelling"
 msgid "_Cancel"
 msgstr "Đang huỷ"
 
@@ -612,7 +611,6 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceList.py:342
 #, fuzzy
-#| msgid "Rename device"
 msgid "Unnamed device"
 msgstr "Sửa tên thiết bị"
 
@@ -635,13 +633,11 @@ msgstr "Đã kết nối"
 
 #: blueman/gui/manager/ManagerDeviceList.py:571
 #, fuzzy
-#| msgid "Trust"
 msgid "Trusted"
 msgstr "Tin"
 
 #: blueman/gui/manager/ManagerDeviceList.py:573
 #, fuzzy
-#| msgid "Pair"
 msgid "Paired"
 msgstr "Kết nối"
 
@@ -738,7 +734,6 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceMenu.py:206
 #, fuzzy
-#| msgid "Unknown"
 msgid "Unknown error"
 msgstr "Không rõ"
 
@@ -748,7 +743,6 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceMenu.py:297
 #, fuzzy
-#| msgid "_<b>_Connect</b>"
 msgid "<b>_Connect</b>"
 msgstr "<b>Kết nối</b>"
 
@@ -758,7 +752,6 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceMenu.py:303
 #, fuzzy
-#| msgid "_<b>_Connect</b>"
 msgid "<b>_Disconnect</b>"
 msgstr "<b>Kết nối</b>"
 
@@ -1312,7 +1305,6 @@ msgstr "Kết nối"
 
 #: blueman/DeviceClass.py:200
 #, fuzzy
-#| msgid "Heart Rate"
 msgid "Heart Rate Belt"
 msgstr "Nhịp tim"
 
@@ -1322,13 +1314,11 @@ msgstr ""
 
 #: blueman/DeviceClass.py:202
 #, fuzzy
-#| msgid "Blood Pressure"
 msgid "Arm Blood Pressure"
 msgstr "Huyết áp"
 
 #: blueman/DeviceClass.py:203
 #, fuzzy
-#| msgid "Blood Pressure"
 msgid "Wrist Blood Pressure"
 msgstr "Huyết áp"
 
@@ -1478,7 +1468,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:240
 #, fuzzy
-#| msgid "Select Device"
 msgid "Generic Network Device"
 msgstr "Chọn thiết bị"
 
@@ -1488,7 +1477,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:242
 #, fuzzy
-#| msgid "Device"
 msgid "Mesh Device"
 msgstr "Thiết bị"
 
@@ -1878,7 +1866,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:344
 #, fuzzy
-#| msgid "Plugins"
 msgid "Plug"
 msgstr "Bổ sung"
 
@@ -1999,7 +1986,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:373
 #, fuzzy
-#| msgid "Audio Source"
 msgid "Generic Audio Source"
 msgstr "Nguồn âm thanh"
 
@@ -2021,7 +2007,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:379
 #, fuzzy
-#| msgid "Service:"
 msgid "Service Desk"
 msgstr "Dịch vụ:"
 
@@ -2208,7 +2193,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:427
 #, fuzzy
-#| msgid "Receiving file"
 msgid "Receiver"
 msgstr "Đang nhận tập tin"
 
@@ -3214,7 +3198,6 @@ msgstr ""
 
 #: blueman/plugins/applet/RecentConns.py:191
 #, fuzzy
-#| msgid "Disconnecting…"
 msgid "Reconnect to…"
 msgstr "Đang ngắt kết nối…"
 
@@ -3435,7 +3418,6 @@ msgstr ""
 
 #: blueman/plugins/applet/DiscvManager.py:63
 #, fuzzy
-#| msgid "Discovering…"
 msgid "Discoverable…"
 msgstr "Đang tìm…"
 

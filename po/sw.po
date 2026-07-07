@@ -256,7 +256,6 @@ msgstr "Kituo cha Kutumia Mtandao (NAP)"
 
 #: data/ui/services-network.ui:348
 #, fuzzy
-#| msgid "<b>PAN Support</b>"
 msgid "<b>NAP Support</b>"
 msgstr "Usaidizi kwa PAN"
 
@@ -615,7 +614,6 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceList.py:342
 #, fuzzy
-#| msgid "Rename device"
 msgid "Unnamed device"
 msgstr "Ita jina jipya kifaa"
 
@@ -638,13 +636,11 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceList.py:571
 #, fuzzy
-#| msgid "Trust"
 msgid "Trusted"
 msgstr "Amini"
 
 #: blueman/gui/manager/ManagerDeviceList.py:573
 #, fuzzy
-#| msgid "Pair"
 msgid "Paired"
 msgstr "jozi"
 
@@ -1466,7 +1462,6 @@ msgstr "Mtandao wa Kikundi"
 
 #: blueman/DeviceClass.py:241
 #, fuzzy
-#| msgid "Network Access Point (NAP)"
 msgid "Access Point"
 msgstr "Kituo cha Kutumia Mtandao (NAP)"
 
@@ -2001,7 +1996,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:379
 #, fuzzy
-#| msgid "Local Services"
 msgid "Service Desk"
 msgstr "Huduma za kienyeji"
 

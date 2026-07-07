@@ -882,7 +882,6 @@ msgstr ""
 
 #: blueman/gui/applet/PluginDialog.py:267
 #, fuzzy
-#| msgid "Dependency issue"
 msgid "No dependencies"
 msgstr "Avhengighetsproblem"
 
@@ -1497,7 +1496,6 @@ msgstr "Nettverkstilgangspunkt"
 
 #: blueman/DeviceClass.py:242
 #, fuzzy
-#| msgid "Device"
 msgid "Mesh Device"
 msgstr "Enhet"
 
@@ -1569,7 +1567,6 @@ msgstr "Regnsensor"
 
 #: blueman/DeviceClass.py:259
 #, fuzzy
-#| msgid "File Sender"
 msgid "Fire Sensor"
 msgstr "Filavsender"
 
@@ -1702,7 +1699,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:291
 #, fuzzy
-#| msgid "Controller"
 msgid "Light Controller"
 msgstr "Kontroller"
 
@@ -1803,13 +1799,11 @@ msgstr ""
 
 #: blueman/DeviceClass.py:315
 #, fuzzy
-#| msgid "Generic Audio"
 msgid "Generic Air Conditioning"
 msgstr "Generisk lyd"
 
 #: blueman/DeviceClass.py:316
 #, fuzzy
-#| msgid "Generic Audio"
 msgid "Generic Humidifier"
 msgstr "Generisk lyd"
 
@@ -1820,7 +1814,6 @@ msgstr "Gruppenettverk"
 
 #: blueman/DeviceClass.py:325
 #, fuzzy
-#| msgid "Generic Access"
 msgid "Generic Access Control"
 msgstr "Generisk tilgang"
 
@@ -1860,7 +1853,6 @@ msgstr "Dørlås"
 
 #: blueman/DeviceClass.py:334
 #, fuzzy
-#| msgid "Blocked"
 msgid "Locker"
 msgstr "Blokkert"
 
@@ -1904,7 +1896,6 @@ msgstr "Strømforgrener"
 
 #: blueman/DeviceClass.py:344
 #, fuzzy
-#| msgid "Plugins"
 msgid "Plug"
 msgstr "Programtillegg"
 
@@ -1999,7 +1990,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:367
 #, fuzzy
-#| msgid "Generic Audio"
 msgid "Generic Audio Sink"
 msgstr "Generisk lyd"
 
@@ -2026,7 +2016,6 @@ msgstr "smarttelefon"
 
 #: blueman/DeviceClass.py:373
 #, fuzzy
-#| msgid "Generic Audio"
 msgid "Generic Audio Source"
 msgstr "Generisk lyd"
 
@@ -2049,7 +2038,6 @@ msgstr "Enhet til visning av posisjon"
 
 #: blueman/DeviceClass.py:379
 #, fuzzy
-#| msgid "Service:"
 msgid "Service Desk"
 msgstr "Tjeneste:"
 
@@ -2063,7 +2051,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:382
 #, fuzzy
-#| msgid "Audio Profile"
 msgid "Auditorium"
 msgstr "Lydprofil"
 
@@ -2074,7 +2061,6 @@ msgstr "Filoverføring via Blåtann"
 
 #: blueman/DeviceClass.py:384
 #, fuzzy
-#| msgid "Camera"
 msgid "Car"
 msgstr "Kamera"
 
@@ -2104,7 +2090,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:391
 #, fuzzy
-#| msgid "Vehicle"
 msgid "Light Vehicle"
 msgstr "Kjøretøy"
 
@@ -2217,7 +2202,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:420
 #, fuzzy
-#| msgid "Generic Audio"
 msgid "Generic Aircraft"
 msgstr "Generisk lyd"
 
@@ -2240,7 +2224,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:425
 #, fuzzy
-#| msgid "Generic Audio"
 msgid "Generic AV Equipment"
 msgstr "Generisk lyd"
 
@@ -2250,7 +2233,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:427
 #, fuzzy
-#| msgid "Receiving file"
 msgid "Receiver"
 msgstr "Mottar fil"
 
@@ -2343,7 +2325,6 @@ msgstr "Generisk lyd"
 
 #: blueman/DeviceClass.py:448
 #, fuzzy
-#| msgid "Digital Pen"
 msgid "Digital Signage"
 msgstr "Digital penn"
 
@@ -2353,19 +2334,16 @@ msgstr ""
 
 #: blueman/DeviceClass.py:450
 #, fuzzy
-#| msgid "Generic: Pulse Oximeter"
 msgid "Generic Pulse Oximeter"
 msgstr "Generisk: Oksygenmetningsmåler"
 
 #: blueman/DeviceClass.py:451
 #, fuzzy
-#| msgid "Generic: Pulse Oximeter"
 msgid "Fingertip Pulse Oximeter"
 msgstr "Generisk: Oksygenmetningsmåler"
 
 #: blueman/DeviceClass.py:452
 #, fuzzy
-#| msgid "Pulse Oximeter"
 msgid "Wrist Worn Pulse Oximeter"
 msgstr "Oksygenmetningsmåler"
 
@@ -2428,7 +2406,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:465
 #, fuzzy
-#| msgid "Generic: Outdoor Sports Activity"
 msgid "Generic Outdoor Sports Activity"
 msgstr "Generisk: Utendørs sportsaktivitet"
 
@@ -3514,9 +3491,6 @@ msgstr ""
 
 #: blueman/plugins/applet/ShowConnected.py:22
 #, fuzzy
-#| msgid ""
-#| "Adds an indication on the status icon when Bluetooth is active and shows "
-#| "the number of connections in the tooltip."
 msgid ""
 "Adds an indication on the status icon when Bluetooth is active and shows the "
 "connections in the tooltip."
@@ -3574,7 +3548,6 @@ msgstr "Synlig … %ss"
 
 #: blueman/plugins/applet/DiscvManager.py:63
 #, fuzzy
-#| msgid "Discoverable… %ss"
 msgid "Discoverable…"
 msgstr "Synlig … %ss"
 
@@ -3612,14 +3585,6 @@ msgstr "Skript som skal kjøres ved tilknytning"
 
 #: blueman/plugins/applet/SerialManager.py:33
 #, fuzzy
-#| msgid ""
-#| "<span size=\"small\">The following arguments will be passed:\n"
-#| "Address, Name, service name, uuid16s, rfcomm node\n"
-#| "For example:\n"
-#| "AA:BB:CC:DD:EE:FF, Phone, DUN service, 0x1103, /dev/rfcomm0\n"
-#| "uuid16s are returned as a comma seperated list\n"
-#| "\n"
-#| "Upon device disconnection the script will be sent a HUP signal</span>"
 msgid ""
 "<span size=\"small\">The following arguments will be passed:\n"
 "Address, Name, service name, uuid16s, rfcomm node\n"
@@ -3698,13 +3663,11 @@ msgstr "Bruker libappindikator for å vise et statusikon"
 
 #: blueman/plugins/applet/PulseAudioProfile.py:19
 #, fuzzy
-#| msgid "Adds standard menu items to the status icon menu"
 msgid "Adds audio profile selector to the status icon menu"
 msgstr "Legg til forvalgte menyelementer til statusikonsmenyen."
 
 #: blueman/plugins/applet/PulseAudioProfile.py:83
 #, fuzzy, python-format
-#| msgid "Audio Profile"
 msgid "Audio Profiles for %s"
 msgstr "Lydprofil"
 

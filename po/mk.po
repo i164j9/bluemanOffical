@@ -1708,13 +1708,11 @@ msgstr ""
 
 #: blueman/DeviceClass.py:303
 #, fuzzy
-#| msgid "Generic Clock"
 msgid "Generic HVAC"
 msgstr "Обичен Саат"
 
 #: blueman/DeviceClass.py:304
 #, fuzzy
-#| msgid "Thermometer: Ear"
 msgid "Thermostat"
 msgstr "Термометар: Ушен"
 
@@ -1760,31 +1758,26 @@ msgstr ""
 
 #: blueman/DeviceClass.py:315
 #, fuzzy
-#| msgid "Generic Audio"
 msgid "Generic Air Conditioning"
 msgstr "Обично аудио"
 
 #: blueman/DeviceClass.py:316
 #, fuzzy
-#| msgid "Generic Audio"
 msgid "Generic Humidifier"
 msgstr "Обично аудио"
 
 #: blueman/DeviceClass.py:317
 #, fuzzy
-#| msgid "Generic Keyring"
 msgid "Generic Heating"
 msgstr "Генерички приврзок за клучеви"
 
 #: blueman/DeviceClass.py:325
 #, fuzzy
-#| msgid "Generic Remote Control"
 msgid "Generic Access Control"
 msgstr "Генерички далечински управувач"
 
 #: blueman/DeviceClass.py:326
 #, fuzzy
-#| msgid "Access point"
 msgid "Access Door"
 msgstr "Точка за пристап"
 
@@ -1798,7 +1791,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:329
 #, fuzzy
-#| msgid "Access point"
 msgid "Access Lock"
 msgstr "Точка за пристап"
 
@@ -1824,7 +1816,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:335
 #, fuzzy
-#| msgid "Generic Blood Pressure"
 msgid "Generic Motorized Device"
 msgstr "Генерички Крвен Притисок"
 
@@ -1850,7 +1841,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:341
 #, fuzzy
-#| msgid "Generic Phone"
 msgid "Generic Power Device"
 msgstr "Обичен Телефон"
 
@@ -1864,7 +1854,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:344
 #, fuzzy
-#| msgid "Plugins"
 msgid "Plug"
 msgstr "Додатоци"
 
@@ -1894,7 +1883,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:351
 #, fuzzy
-#| msgid "Generic: Weight Scale"
 msgid "Generic Light Source"
 msgstr "Обична вага за тежина"
 
@@ -1932,7 +1920,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:360
 #, fuzzy
-#| msgid "Generic Keyring"
 msgid "Generic Window Covering"
 msgstr "Генерички приврзок за клучеви"
 
@@ -1962,7 +1949,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:367
 #, fuzzy
-#| msgid "Generic Audio"
 msgid "Generic Audio Sink"
 msgstr "Обично аудио"
 
@@ -1984,13 +1970,11 @@ msgstr ""
 
 #: blueman/DeviceClass.py:372
 #, fuzzy
-#| msgid "Smartphone"
 msgid "Speakerphone"
 msgstr "Паметен телефон"
 
 #: blueman/DeviceClass.py:373
 #, fuzzy
-#| msgid "Generic Audio"
 msgid "Generic Audio Source"
 msgstr "Обично аудио"
 
@@ -2024,19 +2008,16 @@ msgstr ""
 
 #: blueman/DeviceClass.py:382
 #, fuzzy
-#| msgid "Audio Profile"
 msgid "Auditorium"
 msgstr "Аудио профил"
 
 #: blueman/DeviceClass.py:383
 #, fuzzy
-#| msgid "Generic Media Player"
 msgid "Generic Motorized Vehicle"
 msgstr "Генерички Медија Плејер"
 
 #: blueman/DeviceClass.py:384
 #, fuzzy
-#| msgid "Camera"
 msgid "Car"
 msgstr "Камера"
 
@@ -2098,7 +2079,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:399
 #, fuzzy
-#| msgid "Generic Display"
 msgid "Generic Domestic Appliance"
 msgstr "Обичен Дисплеј"
 
@@ -2116,7 +2096,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:403
 #, fuzzy
-#| msgid "Microphone"
 msgid "Microwave"
 msgstr "Микрофон"
 
@@ -2166,7 +2145,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:415
 #, fuzzy
-#| msgid "Generic Audio"
 msgid "Generic Wearable Audio Device"
 msgstr "Обично аудио"
 
@@ -2180,7 +2158,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:420
 #, fuzzy
-#| msgid "Generic Audio"
 msgid "Generic Aircraft"
 msgstr "Обично аудио"
 
@@ -2190,7 +2167,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:422
 #, fuzzy
-#| msgid "Microphone"
 msgid "Microlight"
 msgstr "Микрофон"
 
@@ -2204,7 +2180,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:425
 #, fuzzy
-#| msgid "Generic Audio"
 msgid "Generic AV Equipment"
 msgstr "Обично аудио"
 
@@ -2214,7 +2189,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:427
 #, fuzzy
-#| msgid "Receiving file"
 msgid "Receiver"
 msgstr "Примање датотека"
 
@@ -2252,7 +2226,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:436
 #, fuzzy
-#| msgid "Generic Display"
 msgid "Generic Display Equipment"
 msgstr "Обичен Дисплеј"
 
@@ -2262,7 +2235,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:438
 #, fuzzy
-#| msgid "Video monitor"
 msgid "Monitor"
 msgstr "Видео монитор"
 
@@ -2272,7 +2244,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:440
 #, fuzzy
-#| msgid "Generic Keyring"
 msgid "Generic Hearing aid"
 msgstr "Генерички приврзок за клучеви"
 
@@ -2290,7 +2261,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:444
 #, fuzzy
-#| msgid "Generic Tag"
 msgid "Generic Gaming"
 msgstr "Генерички Ознаки"
 
@@ -2304,7 +2274,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:447
 #, fuzzy
-#| msgid "Generic Tag"
 msgid "Generic Signage"
 msgstr "Генерички Ознаки"
 
@@ -2318,7 +2287,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:450
 #, fuzzy
-#| msgid "Generic Glucose Meter"
 msgid "Generic Pulse Oximeter"
 msgstr "Обичен глукомер"
 
@@ -2332,7 +2300,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:453
 #, fuzzy
-#| msgid "Generic: Weight Scale"
 msgid "Generic Weight Scale"
 msgstr "Обична вага за тежина"
 
@@ -2374,7 +2341,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:463
 #, fuzzy
-#| msgid "Generic Thermometer"
 msgid "Generic Spirometer"
 msgstr "Генерички Топломер"
 
@@ -2388,7 +2354,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:466
 #, fuzzy
-#| msgid "Display"
 msgid "Location Display"
 msgstr "Дисплеј"
 
@@ -3180,10 +3145,6 @@ msgstr "Дали сигурно сакаш да го ресетираш број
 
 #: blueman/plugins/applet/NetUsage.py:289
 #, fuzzy
-#| msgid ""
-#| "Allows you to monitor your (mobile broadband) network traffic usage. "
-#| "Useful for limited data access plans. This plugin tracks every device "
-#| "seperately."
 msgid ""
 "Allows you to monitor your (mobile broadband) network traffic usage. Useful "
 "for limited data access plans. This plugin tracks every device separately."
@@ -3435,9 +3396,6 @@ msgstr ""
 
 #: blueman/plugins/applet/ShowConnected.py:22
 #, fuzzy
-#| msgid ""
-#| "Adds an indication on the status icon when Bluetooth is active and shows "
-#| "the number of connections in the tooltip."
 msgid ""
 "Adds an indication on the status icon when Bluetooth is active and shows the "
 "connections in the tooltip."
@@ -3495,7 +3453,6 @@ msgstr ""
 
 #: blueman/plugins/applet/DiscvManager.py:63
 #, fuzzy
-#| msgid "Discovering…"
 msgid "Discoverable…"
 msgstr "Откривање…"
 
@@ -3530,14 +3487,6 @@ msgstr "Скрипта која се извршува при врска"
 
 #: blueman/plugins/applet/SerialManager.py:33
 #, fuzzy
-#| msgid ""
-#| "<span size=\"small\">The following arguments will be passed:\n"
-#| "Address, Name, service name, uuid16s, rfcomm node\n"
-#| "For example:\n"
-#| "AA:BB:CC:DD:EE:FF, Phone, DUN service, 0x1103, /dev/rfcomm0\n"
-#| "uuid16s are returned as a comma seperated list\n"
-#| "\n"
-#| "Upon device disconnection the script will be sent a HUP signal</span>"
 msgid ""
 "<span size=\"small\">The following arguments will be passed:\n"
 "Address, Name, service name, uuid16s, rfcomm node\n"
@@ -3615,13 +3564,11 @@ msgstr "Го користи libappindicator за да ја прикаже ста
 
 #: blueman/plugins/applet/PulseAudioProfile.py:19
 #, fuzzy
-#| msgid "Adds standard menu items to the status icon menu"
 msgid "Adds audio profile selector to the status icon menu"
 msgstr "Додава стандардни мени ставки на статусната мени икона"
 
 #: blueman/plugins/applet/PulseAudioProfile.py:83
 #, fuzzy, python-format
-#| msgid "Audio Profile"
 msgid "Audio Profiles for %s"
 msgstr "Аудио профил"
 

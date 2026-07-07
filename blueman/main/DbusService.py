@@ -7,6 +7,9 @@ from collections.abc import Callable, Collection, Mapping
 from gi.repository import Gio, GLib
 
 
+BUS_NAME_OWNER_FLAGS_NONE = getattr(Gio.BusNameOwnerFlags, "NONE", Gio.BusNameOwnerFlags(0))
+
+
 class DbusError(Exception):
     _name = "org.blueman.Error"
 
@@ -27,7 +30,7 @@ class DbusService:
                  properties: Mapping[str, str] | None = None) -> None:
         self._bus = Gio.bus_get_sync(bus_type)
         if bus_name:
-            Gio.bus_own_name(bus_type, bus_name, Gio.BusNameOwnerFlags.NONE, None, None, None)
+            Gio.bus_own_name(bus_type, bus_name, BUS_NAME_OWNER_FLAGS_NONE, None, None, None)
         self._methods: dict[str, tuple[tuple[str, ...], tuple[str, ...], Callable[..., None], set[str]]] = {}
         self._signals: dict[str, tuple[str, ...]] = {}
         self._properties = {} if properties is None else properties
@@ -49,7 +52,7 @@ class DbusService:
     def add_method(self, name: str, arguments: tuple[str, ...], return_values: str | tuple[str, ...],
                    method: Callable[..., Any], pass_sender: bool = False, is_async: bool = False) -> None:
         if name in self._signals:
-            raise Exception(f"{name} already defined")
+            raise ValueError(f"{name} already defined")
 
         options = set()
         if pass_sender:
@@ -63,7 +66,7 @@ class DbusService:
 
     def add_signal(self, name: str, types: str | tuple[str, ...]) -> None:
         if name in self._signals:
-            raise Exception(f"{name} already defined")
+            raise ValueError(f"{name} already defined")
 
         self._signals[name] = self._handle_return_type(types)
 
@@ -131,9 +134,10 @@ class DbusService:
             try:
                 _arguments, result_signatures, method, options = self._methods[method_name]
             except KeyError:
-                logging.warning(f"Unhandled method: {method_name}")
+                logging.warning("Unhandled method: %s", method_name)
                 invocation.return_error_literal(Gio.dbus_error_quark(), Gio.DBusError.UNKNOWN_METHOD,
                                                 f"No such method on interface: {interface_name}.{method_name}")
+                return
 
             def ok(*result: Any) -> None:
                 invocation.return_value(self._prepare_arguments(result_signatures,

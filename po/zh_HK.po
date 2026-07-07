@@ -632,13 +632,11 @@ msgstr "已連線"
 
 #: blueman/gui/manager/ManagerDeviceList.py:571
 #, fuzzy
-#| msgid "Trust"
 msgid "Trusted"
 msgstr "信任"
 
 #: blueman/gui/manager/ManagerDeviceList.py:573
 #, fuzzy
-#| msgid "Pair"
 msgid "Paired"
 msgstr "配對"
 
@@ -734,7 +732,6 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceMenu.py:206
 #, fuzzy
-#| msgid "Unknown"
 msgid "Unknown error"
 msgstr "不明"
 
@@ -1472,7 +1469,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:242
 #, fuzzy
-#| msgid "Device"
 msgid "Mesh Device"
 msgstr "裝置"
 
@@ -1862,7 +1858,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:344
 #, fuzzy
-#| msgid "Plugins"
 msgid "Plug"
 msgstr "外掛程式"
 

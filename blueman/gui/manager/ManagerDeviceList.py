@@ -1,6 +1,7 @@
 from gettext import gettext as _
 from typing import TYPE_CHECKING, Any, cast
 from collections.abc import Callable
+from types import SimpleNamespace
 import html
 import logging
 import cairo
@@ -16,7 +17,15 @@ from blueman.gui.GenericList import ListDataDict
 from blueman.gui.manager.ManagerDeviceMenu import ManagerDeviceMenu
 from blueman.Constants import PIXMAP_PATH
 from blueman.Functions import launch, adapter_path_to_name
-from blueman.Sdp import ServiceUUID, OBEX_OBJPUSH_SVCLASS_ID
+from blueman.Sdp import (
+    ADVANCED_AUDIO_SVCLASS_ID,
+    AUDIO_SINK_SVCLASS_ID,
+    AUDIO_SOURCE_SVCLASS_ID,
+    HANDSFREE_SVCLASS_ID,
+    HEADSET_SVCLASS_ID,
+    OBEX_OBJPUSH_SVCLASS_ID,
+    ServiceUUID,
+)
 from blueman.gui.GtkAnimation import TreeRowFade, CellFade, AnimBase
 from _blueman import ConnInfoReadError, conn_info
 
@@ -34,12 +43,40 @@ if TYPE_CHECKING:
     from blueman.main.Manager import Blueman
 
 
+DOUBLE_BUTTON_PRESS = cast(
+    Gdk.EventType,
+    getattr(Gdk.EventType, "_2BUTTON_PRESS", Gdk.EventType.BUTTON_PRESS),
+)
+DEST_DEFAULTS_ALL = cast(
+    Gtk.DestDefaults,
+    getattr(
+        Gtk.DestDefaults,
+        "ALL",
+        Gtk.DestDefaults.MOTION | Gtk.DestDefaults.HIGHLIGHT | Gtk.DestDefaults.DROP,
+    ),
+)
+
+
 class SurfaceObject(GObject.Object):
     __gtype_name__ = "SurfaceObject"
 
     def __init__(self, surface: cairo.ImageSurface) -> None:
         super().__init__()
         self.surface = surface
+
+
+def apply_row_state_update(
+    row_update: Callable[[Gtk.TreeIter, str, Any], None],
+    tree_iter: Gtk.TreeIter,
+    key: str,
+    value: Any,
+) -> bool:
+    try:
+        row_update(tree_iter, key, value)
+    except (TypeError, ValueError) as exc:
+        logging.warning("Skipping stale row update for %s=%r: %s", key, value, exc)
+        return False
+    return True
 
 
 def get_power_level_values(batteries: dict[str, Battery], device: Device, cinfo: conn_info) -> dict[str, float]:
@@ -138,6 +175,22 @@ def get_unavailable_power_columns(signal_levels_available: bool) -> tuple[str, .
     return ("rssi_pb", "tpl_pb")
 
 
+LEGACY_POWER_LEVEL_EXCLUDED_UUIDS = {
+    ADVANCED_AUDIO_SVCLASS_ID,
+    AUDIO_SINK_SVCLASS_ID,
+    AUDIO_SOURCE_SVCLASS_ID,
+    HANDSFREE_SVCLASS_ID,
+    HEADSET_SVCLASS_ID,
+}
+
+
+def should_monitor_power_levels(device: Device) -> bool:
+    for uuid in device["UUIDs"]:
+        if ServiceUUID(uuid).short_uuid in LEGACY_POWER_LEVEL_EXCLUDED_UUIDS:
+            return False
+    return True
+
+
 class ManagerDeviceList(DeviceList):
     def __init__(self, inst: "Blueman", adapter: str | None = None) -> None:
         cr = Gtk.CellRendererText()
@@ -205,7 +258,7 @@ class ManagerDeviceList(DeviceList):
         self.connect("drag_data_received", self.drag_recv)
         self.connect("drag-motion", self.drag_motion)
 
-        Gtk.Widget.drag_dest_set(self, Gtk.DestDefaults.ALL, [], Gdk.DragAction.COPY | Gdk.DragAction.DEFAULT)
+        Gtk.Widget.drag_dest_set(self, DEST_DEFAULTS_ALL, [], Gdk.DragAction.COPY | Gdk.DragAction.DEFAULT)
         Gtk.Widget.drag_dest_add_uri_targets(self)
 
         self.set_search_equal_func(self.search_func)
@@ -234,7 +287,7 @@ class ManagerDeviceList(DeviceList):
         if obj_path not in self._batteries:
             battery_proxy = Battery(obj_path=obj_path)
             self._batteries[obj_path] = battery_proxy
-            logging.debug(f"{obj_path} {battery_proxy['Percentage']}")
+            logging.debug("%s %s", obj_path, battery_proxy["Percentage"])
 
     def on_battery_removed(self, _manager: Manager, obj_path: str) -> None:
         if obj_path in self._batteries:
@@ -245,7 +298,7 @@ class ManagerDeviceList(DeviceList):
         row = self.get(tree_iter, "caption")
         if key.lower() in row["caption"].lower():
             return False
-        logging.info(f"{model} {column} {key} {tree_iter}")
+        logging.info("%s %s %s %s", model, column, key, tree_iter)
         return True
 
     def filter_func(self, _model: Gtk.TreeModel, tree_iter: Gtk.TreeIter, _data: Any) -> bool:
@@ -317,7 +370,7 @@ class ManagerDeviceList(DeviceList):
         return True
 
     def _on_event_clicked(self, _widget: Gtk.Widget, event: Gdk.Event) -> bool:
-        if event.type not in (Gdk.EventType._2BUTTON_PRESS, Gdk.EventType.BUTTON_PRESS):
+        if event.type not in (DOUBLE_BUTTON_PRESS, Gdk.EventType.BUTTON_PRESS):
             return False
 
         posdata = self.get_path_at_pos(int(cast(Gdk.EventButton, event).x), int(cast(Gdk.EventButton, event).y))
@@ -338,7 +391,7 @@ class ManagerDeviceList(DeviceList):
         if self.menu is None:
             self.menu = ManagerDeviceMenu(self.Blueman)
 
-        if event.type == Gdk.EventType._2BUTTON_PRESS and cast(Gdk.EventButton, event).button == 1:
+        if event.type == DOUBLE_BUTTON_PRESS and cast(Gdk.EventButton, event).button == 1:
             if self.menu.show_generic_connect_calc(row["device"]['UUIDs']):
                 if row["connected"]:
                     self.menu.disconnect_service(row["device"])
@@ -346,7 +399,7 @@ class ManagerDeviceList(DeviceList):
                     self.menu.connect_service(row["device"])
 
         if event.type == Gdk.EventType.BUTTON_PRESS and cast(Gdk.EventButton, event).button == 3:
-            self.menu.popup_at_pointer(event)
+            self.menu.show_popup_at_pointer(event)
 
         return False
 
@@ -371,7 +424,7 @@ class ManagerDeviceList(DeviceList):
         icon_info = self.icon_theme.lookup_icon_for_scale(icon_name, size, scale, Gtk.IconLookupFlags.FORCE_SIZE)
 
         if icon_info is None:
-            logging.error(f"Failed to look up icon \"{icon_name}\" likely due to broken icon theme.")
+            logging.error("Failed to look up icon %r likely due to broken icon theme.", icon_name)
             missing_icon_info = self.icon_theme.lookup_icon_for_scale(
                 "image-missing",
                 size,
@@ -434,7 +487,7 @@ class ManagerDeviceList(DeviceList):
                % {"0": html.escape(name), "1": klass, "2": address}
 
     @staticmethod
-    def make_display_name(alias: str, klass: int, address: BtAddress) -> str:
+    def make_display_name(alias: str, _klass: int, address: BtAddress) -> str:
         if alias.replace("-", ":") == address:
             return _("Unnamed device")
         else:
@@ -487,28 +540,22 @@ class ManagerDeviceList(DeviceList):
 
         self.set(tree_iter, caption=caption, alias=display_name, objpush=has_objpush, device_surface=surface_object)
 
-        try:
-            self.row_update_event(tree_iter, "Trusted", device['Trusted'])
-        except Exception as e:
-            logging.exception(e)
-        try:
-            self.row_update_event(tree_iter, "Paired", device['Paired'])
-        except Exception as e:
-            logging.exception(e)
-        try:
-            self.row_update_event(tree_iter, "Connected", device["Connected"])
-        except Exception as e:
-            logging.exception(e)
-        try:
-            self.row_update_event(tree_iter, "Blocked", device["Blocked"])
-        except Exception as e:
-            logging.exception(e)
+        apply_row_state_update(self.row_update_event, tree_iter, "Trusted", device["Trusted"])
+        apply_row_state_update(self.row_update_event, tree_iter, "Paired", device["Paired"])
+        apply_row_state_update(self.row_update_event, tree_iter, "Connected", device["Connected"])
+        apply_row_state_update(self.row_update_event, tree_iter, "Blocked", device["Blocked"])
 
         if device["Connected"]:
             self._monitor_power_levels(tree_iter, device)
 
     def _monitor_power_levels(self, tree_iter: Gtk.TreeIter, device: Device) -> None:
         if device["Address"] in self._monitored_devices:
+            return
+
+        if not should_monitor_power_levels(device):
+            # Avoid legacy conn_info polling on Bluetooth audio devices; the periodic
+            # HCI reads can disrupt active playback on some adapters/stacks.
+            self._update_power_levels(tree_iter, device, cast(conn_info, SimpleNamespace(failed=True)))
             return
 
         assert self.Adapter is not None
@@ -518,7 +565,7 @@ class ManagerDeviceList(DeviceList):
         try:
             cinfo.init()
         except ConnInfoReadError:
-            logging.warning("Failed to get power levels, probably a LE device.")
+            logging.debug("Power levels unavailable for %s, probably a LE device.", device["Address"])
 
         model = self.liststore
         assert isinstance(model, Gtk.TreeModel)
@@ -549,7 +596,7 @@ class ManagerDeviceList(DeviceList):
             return False
 
     def row_update_event(self, tree_iter: Gtk.TreeIter, key: str, value: Any) -> None:
-        logging.info(f"{key} {value}")
+        logging.debug("%s %s", key, value)
 
         device = self.get(tree_iter, "device")["device"]
 

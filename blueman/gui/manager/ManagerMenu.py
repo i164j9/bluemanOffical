@@ -115,7 +115,7 @@ class ManagerMenu:
         if menuitem.props.active:
             assert self.blueman.List.Adapter is not None
             if adapter_path != self.blueman.List.Adapter.get_object_path():
-                logging.info(f"selected {adapter_path}")
+                logging.info("selected %s", adapter_path)
                 self.blueman.Config["last-adapter"] = adapter_path_to_name(adapter_path)
                 self.blueman.List.set_adapter(adapter_path)
 

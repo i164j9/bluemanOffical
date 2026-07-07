@@ -873,7 +873,6 @@ msgstr ""
 
 #: blueman/gui/applet/PluginDialog.py:267
 #, fuzzy
-#| msgid "Dependency issue"
 msgid "No dependencies"
 msgstr "Problem zavisnosti"
 
@@ -1186,7 +1185,6 @@ msgstr "Igra"
 
 #: blueman/DeviceClass.py:168
 #, fuzzy
-#| msgid "Generic Phone"
 msgid "Generic Unknown"
 msgstr "Generički telefon"
 
@@ -1204,7 +1202,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:172
 #, fuzzy
-#| msgid "Generic Computer"
 msgid "Server-class Computer"
 msgstr "Generičko računalo"
 
@@ -1234,7 +1231,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:180
 #, fuzzy
-#| msgid "Server"
 msgid "Blade Server"
 msgstr "Poslužitelj"
 
@@ -1244,7 +1240,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:182
 #, fuzzy
-#| msgid "Wearable"
 msgid "Detachable"
 msgstr "Prenosivi uređaj"
 
@@ -1266,13 +1261,11 @@ msgstr "Generički sat"
 
 #: blueman/DeviceClass.py:187
 #, fuzzy
-#| msgid "Watch: Sports Watch"
 msgid "Sports Watch"
 msgstr "Sat: Sportski sat"
 
 #: blueman/DeviceClass.py:188
 #, fuzzy
-#| msgid "Wrist watch"
 msgid "Smartwatch"
 msgstr "Ručni sat"
 
@@ -1314,19 +1307,16 @@ msgstr "Generički toplomjer"
 
 #: blueman/DeviceClass.py:198
 #, fuzzy
-#| msgid "Health Thermometer"
 msgid "Ear Thermometer"
 msgstr "Toplomjer"
 
 #: blueman/DeviceClass.py:199
 #, fuzzy
-#| msgid "Generic Heart rate Sensor"
 msgid "Generic Heart Rate Sensor"
 msgstr "Generički senzor otkucaja srca"
 
 #: blueman/DeviceClass.py:200
 #, fuzzy
-#| msgid "Heart Rate"
 msgid "Heart Rate Belt"
 msgstr "Otkucaji srca"
 
@@ -1344,7 +1334,6 @@ msgstr "Tlakomjer na zglobu"
 
 #: blueman/DeviceClass.py:204
 #, fuzzy
-#| msgid "Human Interface Device"
 msgid "Generic Human Interface Device"
 msgstr "Uređaj korisničkog sučelja"
 
@@ -1390,67 +1379,56 @@ msgstr "Generički glukometar"
 
 #: blueman/DeviceClass.py:216
 #, fuzzy
-#| msgid "Generic: Running Walking Sensor"
 msgid "Generic Running Walking Sensor"
 msgstr "Generički: Senzor za hodanje i trčanje"
 
 #: blueman/DeviceClass.py:217
 #, fuzzy
-#| msgid "Generic: Running Walking Sensor"
 msgid "In-Shoe Running Walking Sensor"
 msgstr "Generički: Senzor za hodanje i trčanje"
 
 #: blueman/DeviceClass.py:218
 #, fuzzy
-#| msgid "Generic: Running Walking Sensor"
 msgid "On-Shoe Running Walking Sensor"
 msgstr "Generički: Senzor za hodanje i trčanje"
 
 #: blueman/DeviceClass.py:219
 #, fuzzy
-#| msgid "Generic: Running Walking Sensor"
 msgid "On-Hip Running Walking Sensor"
 msgstr "Generički: Senzor za hodanje i trčanje"
 
 #: blueman/DeviceClass.py:220
 #, fuzzy
-#| msgid "Generic: Cycling"
 msgid "Generic Cycling"
 msgstr "Generički: Biciklizam"
 
 #: blueman/DeviceClass.py:221
 #, fuzzy
-#| msgid "Cycling: Cycling Computer"
 msgid "Cycling Computer"
 msgstr "Biciklizam: Biciklističko računalo"
 
 #: blueman/DeviceClass.py:222
 #, fuzzy
-#| msgid "Cycling: Speed Sensor"
 msgid "Speed Sensor"
 msgstr "Biciklizam: Senzor brzine"
 
 #: blueman/DeviceClass.py:223
 #, fuzzy
-#| msgid "Cycling: Cadence Sensor"
 msgid "Cadence Sensor"
 msgstr "Biciklizam: Senzor ritma"
 
 #: blueman/DeviceClass.py:224
 #, fuzzy
-#| msgid "Cycling: Power Sensor"
 msgid "Power Sensor"
 msgstr "Biciklizam: Senzor snage"
 
 #: blueman/DeviceClass.py:225
 #, fuzzy
-#| msgid "Cycling: Speed and Cadence Sensor"
 msgid "Speed and Cadence Sensor"
 msgstr "Biciklizam: Senzor ritma i brzine"
 
 #: blueman/DeviceClass.py:226
 #, fuzzy
-#| msgid "Generic Personal Mobility Device"
 msgid "Generic Control Device"
 msgstr "Generički osobni prijenosni uređaj"
 
@@ -1492,7 +1470,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:236
 #, fuzzy
-#| msgid "Battery Service"
 msgid "Battery Switch"
 msgstr "Usluga baterije"
 
@@ -1510,19 +1487,16 @@ msgstr ""
 
 #: blueman/DeviceClass.py:240
 #, fuzzy
-#| msgid "Generic Networking"
 msgid "Generic Network Device"
 msgstr "Generičko umrežavanje"
 
 #: blueman/DeviceClass.py:241
 #, fuzzy
-#| msgid "Access point"
 msgid "Access Point"
 msgstr "Pristupna točka"
 
 #: blueman/DeviceClass.py:242
 #, fuzzy
-#| msgid "Device"
 msgid "Mesh Device"
 msgstr "Uređaj"
 
@@ -1532,7 +1506,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:244
 #, fuzzy
-#| msgid "Generic Heart rate Sensor"
 msgid "Generic Sensor"
 msgstr "Generički senzor otkucaja srca"
 
@@ -1546,7 +1519,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:247
 #, fuzzy
-#| msgid "Generic Heart rate Sensor"
 msgid "Temperature Sensor"
 msgstr "Generički senzor otkucaja srca"
 
@@ -1596,13 +1568,11 @@ msgstr ""
 
 #: blueman/DeviceClass.py:259
 #, fuzzy
-#| msgid "File Sender"
 msgid "Fire Sensor"
 msgstr "Pošiljatelj datoteka"
 
 #: blueman/DeviceClass.py:260
 #, fuzzy
-#| msgid "Cycling: Speed Sensor"
 msgid "Wind Sensor"
 msgstr "Biciklizam: Senzor brzine"
 
@@ -1620,7 +1590,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:264
 #, fuzzy
-#| msgid "Cycling: Speed Sensor"
 msgid "Ceiling Mounted Sensor"
 msgstr "Biciklizam: Senzor brzine"
 
@@ -1646,7 +1615,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:270
 #, fuzzy
-#| msgid "Generic: Weight Scale"
 msgid "Generic Light Fixtures"
 msgstr "Generička: Vaga za težinu"
 
@@ -1732,7 +1700,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:291
 #, fuzzy
-#| msgid "Controller"
 msgid "Light Controller"
 msgstr "Upravljač igre"
 
@@ -1754,7 +1721,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:296
 #, fuzzy
-#| msgid "Generic Tag"
 msgid "Generic Fan"
 msgstr "Generička oznaka"
 
@@ -1784,13 +1750,11 @@ msgstr ""
 
 #: blueman/DeviceClass.py:303
 #, fuzzy
-#| msgid "Generic Clock"
 msgid "Generic HVAC"
 msgstr "Generički sat"
 
 #: blueman/DeviceClass.py:304
 #, fuzzy
-#| msgid "Thermometer: Ear"
 msgid "Thermostat"
 msgstr "Toplomjer: Za uši"
 
@@ -1836,31 +1800,26 @@ msgstr ""
 
 #: blueman/DeviceClass.py:315
 #, fuzzy
-#| msgid "Generic Audio"
 msgid "Generic Air Conditioning"
 msgstr "Generički zvuk"
 
 #: blueman/DeviceClass.py:316
 #, fuzzy
-#| msgid "Generic Audio"
 msgid "Generic Humidifier"
 msgstr "Generički zvuk"
 
 #: blueman/DeviceClass.py:317
 #, fuzzy
-#| msgid "Generic Keyring"
 msgid "Generic Heating"
 msgstr "Generički privjesak"
 
 #: blueman/DeviceClass.py:325
 #, fuzzy
-#| msgid "Generic Access"
 msgid "Generic Access Control"
 msgstr "Generički pristup"
 
 #: blueman/DeviceClass.py:326
 #, fuzzy
-#| msgid "Access point"
 msgid "Access Door"
 msgstr "Pristupna točka"
 
@@ -1874,7 +1833,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:329
 #, fuzzy
-#| msgid "Access point"
 msgid "Access Lock"
 msgstr "Pristupna točka"
 
@@ -1896,13 +1854,11 @@ msgstr ""
 
 #: blueman/DeviceClass.py:334
 #, fuzzy
-#| msgid "Blocked"
 msgid "Locker"
 msgstr "Blokirano"
 
 #: blueman/DeviceClass.py:335
 #, fuzzy
-#| msgid "Generic Personal Mobility Device"
 msgid "Generic Motorized Device"
 msgstr "Generički osobni prijenosni uređaj"
 
@@ -1928,7 +1884,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:341
 #, fuzzy
-#| msgid "Generic Personal Mobility Device"
 msgid "Generic Power Device"
 msgstr "Generički osobni prijenosni uređaj"
 
@@ -1942,7 +1897,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:344
 #, fuzzy
-#| msgid "Plugins"
 msgid "Plug"
 msgstr "Priključci"
 
@@ -1972,7 +1926,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:351
 #, fuzzy
-#| msgid "Generic: Weight Scale"
 msgid "Generic Light Source"
 msgstr "Generička: Vaga za težinu"
 
@@ -2010,7 +1963,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:360
 #, fuzzy
-#| msgid "Generic Keyring"
 msgid "Generic Window Covering"
 msgstr "Generički privjesak"
 
@@ -2040,7 +1992,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:367
 #, fuzzy
-#| msgid "Generic Audio"
 msgid "Generic Audio Sink"
 msgstr "Generički zvuk"
 
@@ -2062,7 +2013,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:372
 #, fuzzy
-#| msgid "Smartphone"
 msgid "Speakerphone"
 msgstr "Pametni telefon"
 
@@ -2232,7 +2182,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:415
 #, fuzzy
-#| msgid "Generic Personal Mobility Device"
 msgid "Generic Wearable Audio Device"
 msgstr "Generički osobni prijenosni uređaj"
 
@@ -2266,7 +2215,6 @@ msgstr "Veliki putnički avion"
 
 #: blueman/DeviceClass.py:425
 #, fuzzy
-#| msgid "Generic Audio"
 msgid "Generic AV Equipment"
 msgstr "Generički zvuk"
 
@@ -2308,13 +2256,11 @@ msgstr "Optični disk player"
 
 #: blueman/DeviceClass.py:435
 #, fuzzy
-#| msgid "Set-top box"
 msgid "Set-Top Box"
 msgstr "TV dekôder/prijemnik"
 
 #: blueman/DeviceClass.py:436
 #, fuzzy
-#| msgid "Generic Display"
 msgid "Generic Display Equipment"
 msgstr "Generički zaslon"
 
@@ -2332,7 +2278,6 @@ msgstr "Projektor"
 
 #: blueman/DeviceClass.py:440
 #, fuzzy
-#| msgid "Generic Keyring"
 msgid "Generic Hearing aid"
 msgstr "Generički privjesak"
 
@@ -2350,7 +2295,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:444
 #, fuzzy
-#| msgid "Generic Tag"
 msgid "Generic Gaming"
 msgstr "Generička oznaka"
 
@@ -2360,13 +2304,11 @@ msgstr ""
 
 #: blueman/DeviceClass.py:446
 #, fuzzy
-#| msgid "Portable audio"
 msgid "Portable handheld console"
 msgstr "Prijenosni glazbeni uređaj"
 
 #: blueman/DeviceClass.py:447
 #, fuzzy
-#| msgid "Generic Tag"
 msgid "Generic Signage"
 msgstr "Generička oznaka"
 
@@ -2380,7 +2322,6 @@ msgstr "Elektronička etiketa"
 
 #: blueman/DeviceClass.py:450
 #, fuzzy
-#| msgid "Generic: Pulse Oximeter"
 msgid "Generic Pulse Oximeter"
 msgstr "Generički: Pulsni oksimetar"
 
@@ -2394,7 +2335,6 @@ msgstr "Pulsni oksimetar na ruci"
 
 #: blueman/DeviceClass.py:453
 #, fuzzy
-#| msgid "Generic: Weight Scale"
 msgid "Generic Weight Scale"
 msgstr "Generička: Vaga za težinu"
 
@@ -3490,9 +3430,6 @@ msgstr ""
 
 #: blueman/plugins/applet/ShowConnected.py:22
 #, fuzzy
-#| msgid ""
-#| "Adds an indication on the status icon when Bluetooth is active and shows "
-#| "the number of connections in the tooltip."
 msgid ""
 "Adds an indication on the status icon when Bluetooth is active and shows the "
 "connections in the tooltip."
@@ -3662,7 +3599,6 @@ msgstr "Omogućuje StatusNotifierItem za prikazivanje ikone stanja"
 
 #: blueman/plugins/applet/PulseAudioProfile.py:19
 #, fuzzy
-#| msgid "Adds standard menu items to the status icon menu"
 msgid "Adds audio profile selector to the status icon menu"
 msgstr "Dodaje uobičajene stavke izbornika u izbornik ikona stanja"
 

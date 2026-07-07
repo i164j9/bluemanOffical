@@ -7,6 +7,7 @@ from argparse import Namespace
 from gettext import ngettext
 from collections.abc import Iterable, Sequence
 from typing import Any, cast
+import _blueman
 
 from blueman.bluez.Device import Device, AnyDevice
 from blueman.bluez.errors import BluezDBusException, DBusNoSuchAdapterError
@@ -14,6 +15,7 @@ from blueman.main.Builder import Builder
 from blueman.bluemantyping import GSignals, ObjectPath
 from blueman.bluez.Adapter import Adapter, AnyAdapter
 from blueman.bluez.Manager import Manager
+from blueman.bluez.obex.FileTransfer import FileTransfer
 from blueman.bluez.obex.ObjectPush import ObjectPush
 from blueman.bluez.obex.Manager import Manager as ObexManager
 from blueman.bluez.obex.Client import Client
@@ -23,7 +25,7 @@ from blueman.Functions import format_bytes, log_system_info, bmexit, check_bluet
 from blueman.main.SpeedCalc import SpeedCalc
 from blueman.gui.CommonUi import ErrorDialog
 from blueman.gui.DeviceSelectorDialog import DeviceSelector
-from blueman.Sdp import ServiceUUID, OBEX_OBJPUSH_SVCLASS_ID
+from blueman.Sdp import ServiceUUID, OBEX_FILETRANS_SVCLASS_ID, OBEX_OBJPUSH_SVCLASS_ID
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -32,6 +34,46 @@ from gi.repository import Gdk, Gtk, GObject, GLib, Gio
 
 
 NO_FILE_QUERY_INFO_FLAGS = cast(Gio.FileQueryInfoFlags, 0)
+
+
+def describe_session_attempt(source_addr: str | None, channel: int | None) -> str:
+    parts = [f"source {source_addr}" if source_addr is not None else "without Source"]
+    if channel is not None:
+        parts.append(f"channel {channel}")
+    return ", ".join(parts)
+
+
+def build_session_failure_message(
+    error: BluezDBusException,
+    attempts: Sequence[tuple[str | None, int | None]],
+) -> str:
+    reason = error.reason.strip()
+
+    if "Connection refused" in reason:
+        message = _(
+            "The remote device refused the OBEX file transfer connection. "
+            "Make sure Bluetooth file sharing is enabled on the device, it is unlocked, and ready to receive files."
+        )
+    else:
+        parts = reason.split(None, 1)
+        if len(parts) == 2 and parts[1]:
+            message = parts[1]
+        elif reason.startswith("org.bluez.obex.Error."):
+            message = _("The OBEX file transfer session could not be established with the remote device.")
+        else:
+            message = reason or _("The OBEX file transfer session could not be established with the remote device.")
+
+    if attempts:
+        attempted = "; ".join(describe_session_attempt(source, channel) for source, channel in attempts)
+        message = f"{message}\n\n{_('Tried session variants')}: {attempted}"
+
+    return message
+
+
+def build_session_failure_title(error: BluezDBusException) -> str:
+    if "Connection refused" in error.reason:
+        return _("Remote device refused file transfer")
+    return _("Error occurred")
 
 
 class SendTo:
@@ -44,6 +86,13 @@ class SendTo:
             self.files = self.select_files()
         else:
             self.files = [os.path.abspath(f) for f in parsed_args.files]
+
+        logging.info(
+            "SendTo starting with source=%s device=%s files=%d",
+            parsed_args.source,
+            parsed_args.device,
+            len(self.files),
+        )
 
         self.device: Device | None = None
         self._manager = manager = Manager()
@@ -175,6 +224,7 @@ class SendTo:
 
     @staticmethod
     def select_files() -> Sequence[str]:
+        logging.info("Opening file chooser for Bluetooth send")
         d = Gtk.FileChooserDialog(title=_("Select files to send"), icon_name='blueman-send-symbolic')
         d.set_select_multiple(True)  # this avoids type error when using keyword arg above
         d.add_buttons(_("_Cancel"), Gtk.ResponseType.REJECT, _("_OK"), Gtk.ResponseType.ACCEPT)
@@ -183,9 +233,11 @@ class SendTo:
         if resp == Gtk.ResponseType.ACCEPT:
             files = d.get_filenames()
             d.destroy()
+            logging.info("Selected %d file(s) for Bluetooth send", len(files))
             return files
         else:
             d.destroy()
+            logging.info("Bluetooth send cancelled during file selection")
             quit()
 
     def select_device(self) -> bool:
@@ -238,11 +290,20 @@ class Sender(Gtk.Dialog):
         self.pb.props.text = _("Connecting")
 
         self.device = device
+        self._awaiting_device_ready = False
+        self._device_handler_id = self.device.connect_signal("property-changed", self._on_device_property_changed)
         self.adapter = Adapter(obj_path=adapter_path)
+        self._preferred_session_source_addr: str = self.adapter["Address"]
+        self._session_source_addr: str | None = self._preferred_session_source_addr
+        self._session_channel: int | None = None
+        self._session_target = "opp"
+        self._session_attempts: list[tuple[str | None, int | None, str]] = [(self._session_source_addr, None, "opp")]
+        self._session_attempt_index = 0
+        self._session_retry_source_id: int | None = None
         self.obex_manager = ObexManager()
         self.files: list[Gio.File] = []
         self.num_files = 0
-        self.object_push: ObjectPush | None = None
+        self.object_push: ObjectPush | FileTransfer | None = None
         self.object_push_handlers: list[int] = []
         self.transfer: Transfer | None = None
 
@@ -313,16 +374,111 @@ class Sender(Gtk.Dialog):
         # Stop discovery if discovering and let adapter settle for a second
         if self.adapter["Discovering"]:
             self.adapter.stop_discovery()
-            GLib.timeout_add_seconds(1, self._create_session_after_discovery)
+            GLib.timeout_add_seconds(1, self._start_send_session_after_discovery)
         else:
-            self.create_session()
+            self._start_send_session()
 
-    def _create_session_after_discovery(self) -> bool:
-        self.create_session()
+    def _start_send_session_after_discovery(self) -> bool:
+        self._start_send_session()
         return False
 
+    def _services_resolved(self) -> bool:
+        try:
+            return bool(self.device["ServicesResolved"])
+        except BluezDBusException:
+            return bool(self.device["Connected"])
+
+    def _device_ready_for_transfer(self) -> bool:
+        return bool(self.device["Connected"]) and self._services_resolved()
+
+    def _start_send_session(self) -> None:
+        if self._device_ready_for_transfer():
+            self._awaiting_device_ready = False
+            self.create_session()
+            return
+
+        self._awaiting_device_ready = True
+        self.pb.props.text = _("Preparing")
+
+        if not self.device["Connected"]:
+            self.device.connect(error_handler=self.on_device_connect_failed)
+
+    def _on_device_property_changed(self, _device: Device, key: str, _value: Any, _path: ObjectPath) -> None:
+        if not self._awaiting_device_ready:
+            return
+
+        if key in ("Connected", "ServicesResolved") and self._device_ready_for_transfer():
+            self._awaiting_device_ready = False
+            self.pb.props.text = _("Connecting")
+            self.create_session()
+
+    def on_device_connect_failed(self, error: BluezDBusException) -> None:
+        self._awaiting_device_ready = False
+
+        parent = self.get_toplevel()
+        assert isinstance(parent, Gtk.Container)
+        d = ErrorDialog(_("Error occurred"), str(error), icon_name="blueman", parent=parent)
+        d.run()
+        d.destroy()
+        self.emit("result", False)
+
+    def _clear_session_retry(self) -> None:
+        if self._session_retry_source_id is not None:
+            GLib.source_remove(self._session_retry_source_id)
+            self._session_retry_source_id = None
+
+    def _schedule_session_retry(self) -> None:
+        self._clear_session_retry()
+        self.pb.props.text = _("Connecting")
+
+        def retry() -> bool:
+            self._session_retry_source_id = None
+            self.create_session()
+            return False
+
+        self._session_retry_source_id = GLib.timeout_add_seconds(1, retry)
+
     def create_session(self) -> None:
-        self.client.create_session(self.device['Address'], self.adapter["Address"])
+        self._session_source_addr, self._session_channel, self._session_target = self._session_attempts[
+            self._session_attempt_index
+        ]
+        self.client.create_session(
+            self.device['Address'],
+            self._session_source_addr,
+            pattern=self._session_target,
+            channel=self._session_channel,
+        )
+
+    def _ensure_session_fallbacks(self) -> None:
+        if len(self._session_attempts) > 1:
+            return
+
+        attempts: list[tuple[str | None, int | None, str]] = [
+            (self._preferred_session_source_addr, None, "opp"),
+            (None, None, "opp"),
+        ]
+
+        opp_channel = _blueman.get_rfcomm_channel(OBEX_OBJPUSH_SVCLASS_ID, self.device["Address"])
+        if opp_channel is not None:
+            attempts.extend([
+                (self._preferred_session_source_addr, opp_channel, "opp"),
+                (None, opp_channel, "opp"),
+            ])
+
+        if any(ServiceUUID(uuid).short_uuid == OBEX_FILETRANS_SVCLASS_ID for uuid in self.device["UUIDs"]):
+            attempts.extend([
+                (self._preferred_session_source_addr, None, "ftp"),
+                (None, None, "ftp"),
+            ])
+
+            ftp_channel = _blueman.get_rfcomm_channel(OBEX_FILETRANS_SVCLASS_ID, self.device["Address"])
+            if ftp_channel is not None:
+                attempts.extend([
+                    (self._preferred_session_source_addr, ftp_channel, "ftp"),
+                    (None, ftp_channel, "ftp"),
+                ])
+
+        self._session_attempts = attempts
 
     def _clear_object_push(self, session_path: ObjectPath | None = None) -> bool:
         if self.object_push is None:
@@ -350,6 +506,8 @@ class Sender(Gtk.Dialog):
 
     def on_cancel(self, button: Gtk.Button | None) -> None:
         self.cancelling = True
+        self._clear_session_retry()
+        self._awaiting_device_ready = False
         self.pb.props.text = _("Cancelling")
         if button:
             button.props.sensitive = False
@@ -476,8 +634,12 @@ class Sender(Gtk.Dialog):
             self.error_dialog = d
 
     def on_session_added(self, _manager: ObexManager, session_path: ObjectPath) -> None:
+        self._clear_session_retry()
         self._clear_object_push()
-        self.object_push = ObjectPush(obj_path=session_path)
+        if self._session_target == "ftp":
+            self.object_push = FileTransfer(obj_path=session_path)
+        else:
+            self.object_push = ObjectPush(obj_path=session_path)
         self.object_push_handlers.append(self.object_push.connect("transfer-started", self.on_transfer_started))
         self.object_push_handlers.append(self.object_push.connect("transfer-failed", self.on_transfer_failed))
         self.process_queue()
@@ -496,9 +658,35 @@ class Sender(Gtk.Dialog):
         self.create_session()
 
     def on_session_failed(self, _client: Client, msg: BluezDBusException) -> None:
+        self._ensure_session_fallbacks()
+
+        if self._session_attempt_index + 1 < len(self._session_attempts):
+            current_source, current_channel, current_target = self._session_attempts[self._session_attempt_index]
+            self._session_attempt_index += 1
+            next_source, next_channel, next_target = self._session_attempts[self._session_attempt_index]
+
+            logging.warning(
+                "CreateSession failed with source %s channel %s target %s, retrying with source %s channel %s target %s: %s",
+                current_source,
+                current_channel,
+                current_target,
+                next_source,
+                next_channel,
+                next_target,
+                msg,
+            )
+            self._schedule_session_retry()
+            return
+
         parent = self.get_toplevel()
         assert isinstance(parent, Gtk.Container)
-        d = ErrorDialog(_("Error occurred"), msg.reason.split(None, 1)[1], icon_name="blueman", parent=parent)
+        attempted_variants = [(source, channel) for source, channel, _target in self._session_attempts[:self._session_attempt_index + 1]]
+        d = ErrorDialog(
+            build_session_failure_title(msg),
+            build_session_failure_message(msg, attempted_variants),
+            icon_name="blueman",
+            parent=parent,
+        )
 
         d.run()
         d.destroy()

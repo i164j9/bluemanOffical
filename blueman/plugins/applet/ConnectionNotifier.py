@@ -16,17 +16,28 @@ class ConnectionNotifier(AppletPlugin):
     __description__ = _("Shows desktop notifications when devices get connected or disconnected.")
 
     _notifications: dict[ObjectPath, _NotificationBubble | _NotificationDialog] = {}
+    _battery_watcher: BatteryWatcher
+
+    def _close_notifications(self) -> None:
+        for notification in self._notifications.values():
+            notification.close()
+        self._notifications = {}
 
     def on_load(self) -> None:
+        self._notifications = {}
         self._battery_watcher = BatteryWatcher(self._on_battery_update)
 
     def on_unload(self) -> None:
-        del self._battery_watcher
+        self._close_notifications()
+        self._battery_watcher.destroy()
 
     def on_device_property_changed(self, path: ObjectPath, key: str, value: Any) -> None:
         if key == "Connected":
             device = Device(obj_path=path)
             if value:
+                notification = self._notifications.pop(path, None)
+                if notification is not None:
+                    notification.close()
                 self._notifications[path] = notification = Notification(
                     device.display_name,
                     _('Connected'),
@@ -35,6 +46,9 @@ class ConnectionNotifier(AppletPlugin):
                 )
                 notification.show()
             else:
+                notification = self._notifications.pop(path, None)
+                if notification is not None:
+                    notification.close()
                 Notification(
                     device.display_name,
                     _('Disconnected'),

@@ -3,6 +3,7 @@ blueman_PYTHON = 	\
 	AgentManager.py	\
 	Base.py		\
 	Client.py	\
+	FileTransfer.py	\
 	Manager.py	\
 	ObjectPush.py	\
 	Session.py	\

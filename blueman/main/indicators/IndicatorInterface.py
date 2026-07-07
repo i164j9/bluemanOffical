@@ -28,3 +28,6 @@ class IndicatorInterface(metaclass=ABCMeta):
     @abstractmethod
     def set_menu(self, menu: Iterable[MenuItemDict]) -> None:
         ...
+
+    def destroy(self) -> None:
+        pass

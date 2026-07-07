@@ -59,6 +59,12 @@ class PPPConnection(GObject.GObject):
         self.pwd = pwd
         self.port = port
         self.interface: str | None = None
+        self.file: int
+        self.pppd: subprocess.Popen[bytes]
+        self.buffer = ""
+        self.term_found = False
+        self.io_watch: int | None = None
+        self.timeout: int | None = None
 
         self.commands: MutableSequence[str | tuple[str, Callable[[list[str]], None], Iterable[str]]] = [
             "ATZ E0 V1 X4 &C1 +FCLASS=0",
@@ -73,15 +79,31 @@ class PPPConnection(GObject.GObject):
         if self.apn != "":
             self.commands.insert(-1, f'AT+CGDCONT=1,"IP","{self.apn}"')
 
+    def _clear_io_watch(self) -> None:
+        if self.io_watch is not None:
+            GLib.source_remove(self.io_watch)
+            self.io_watch = None
+
+    def _clear_timeout(self) -> None:
+        if self.timeout is not None:
+            GLib.source_remove(self.timeout)
+            self.timeout = None
+
     def cleanup(self) -> None:
         os.close(self.file)
 
     def connect_callback(self, response: list[str]) -> None:
         if "CONNECT" in response:
             logging.info("Starting pppd")
-            self.pppd = subprocess.Popen(
-                ["/usr/sbin/pppd", f"{self.port}", "115200", "defaultroute", "updetach", "usepeerdns"], bufsize=1,
-                stdout=subprocess.PIPE)
+            try:
+                self.pppd = subprocess.Popen(
+                    ["/usr/sbin/pppd", f"{self.port}", "115200", "defaultroute", "updetach", "usepeerdns"],
+                    bufsize=1,
+                    stdout=subprocess.PIPE,
+                )
+            except OSError as exc:
+                self.cleanup()
+                raise PPPException(f"Failed to start pppd: {exc}") from exc
             assert self.pppd.stdout is not None
             GLib.io_add_watch(self.pppd.stdout, GLib.IO_IN | GLib.IO_ERR | GLib.IO_HUP, self.on_pppd_stdout)
             GLib.timeout_add(1000, self.check_pppd)
@@ -168,19 +190,20 @@ class PPPConnection(GObject.GObject):
 
                 self.emit("error-occurred", msg)
 
-            logging.warning(f"pppd exited with status {status:d}")
+            logging.warning("pppd exited with status %d", status)
             return False
         return True
 
     def send_command(self, command: str) -> None:
-        logging.info(f"--> {command}")
+        logging.info("--> %s", command)
         out = f"{command}\r\n"
         os.write(self.file, out.encode("UTF-8"))
         termios.tcdrain(self.file)
 
     def on_data_ready(self, _source: int, condition: GLib.IOCondition, command_id: int) -> bool:
         if condition & GLib.IO_ERR or condition & GLib.IO_HUP:
-            GLib.source_remove(self.timeout)
+            self._clear_timeout()
+            self.io_watch = None
             self.__cmd_response_cb(None, PPPException("Socket error"), command_id)
             self.cleanup()
             return False
@@ -191,6 +214,8 @@ class PPPConnection(GObject.GObject):
                 logging.error("Got EAGAIN")
                 return True
             else:
+                self._clear_timeout()
+                self.io_watch = None
                 self.__cmd_response_cb(None, PPPException("Socket error"), command_id)
                 logging.exception(e)
                 self.cleanup()
@@ -202,8 +227,10 @@ class PPPConnection(GObject.GObject):
 
         if any(terminator in line for line in lines for terminator in terminators):
             lines = [x.strip("\r\n") for x in lines if x != ""]
-            logging.info(f"<-- {lines}")
+            logging.info("<-- %s", lines)
 
+            self._clear_timeout()
+            self.io_watch = None
             self.__cmd_response_cb(lines, None, command_id)
             return False
 
@@ -211,7 +238,8 @@ class PPPConnection(GObject.GObject):
 
     def wait_for_reply(self, command_id: int) -> None:
         def on_timeout() -> bool:
-            GLib.source_remove(self.io_watch)
+            self.timeout = None
+            self._clear_io_watch()
             self.__cmd_response_cb(None, PPPException("Modem initialization timed out"), command_id)
             self.cleanup()
             return False

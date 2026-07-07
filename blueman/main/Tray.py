@@ -21,6 +21,7 @@ class BluemanTray(Gio.Application):
     def __init__(self) -> None:
         super().__init__(application_id="org.blueman.Tray", flags=NO_APPLICATION_FLAGS)
         self._active = False
+        self.connect("shutdown", lambda *_args: self._destroy_indicator())
 
         def do_quit(_: object) -> bool:
             self.quit()
@@ -41,6 +42,13 @@ class BluemanTray(Gio.Application):
         Gio.bus_watch_name(Gio.BusType.SESSION, 'org.blueman.Applet', NO_BUS_NAME_WATCHER_FLAGS,
                            self._on_name_appeared, self._on_name_vanished)
         self.hold()
+
+    def _destroy_indicator(self) -> None:
+        indicator = getattr(self, "indicator", None)
+        if indicator is not None:
+            indicator.destroy()
+            self.indicator = None
+        self._active = False
 
     def _on_name_appeared(self, _connection: Gio.DBusConnection, name: str, _owner: str) -> None:
         logging.debug("Applet started on name %s, showing indicator", name)
@@ -68,7 +76,9 @@ class BluemanTray(Gio.Application):
 
     def _on_name_vanished(self, _connection: Gio.DBusConnection, _name: str) -> None:
         logging.debug("Applet shutdown or not available at startup")
+        self._destroy_indicator()
         self.quit()
+
 
     def activate_menu_item(self, *indexes: int) -> None:
         AppletMenuService().ActivateMenuItem('(ai)', indexes)

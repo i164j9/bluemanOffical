@@ -5,7 +5,7 @@ from gettext import gettext as _, ngettext
 import logging
 from typing import Any
 
-from blueman.Functions import *
+from blueman.Functions import format_bytes
 from blueman.main.Builder import Builder
 from blueman.plugins.AppletPlugin import AppletPlugin
 from blueman.bluez.Device import Device
@@ -78,6 +78,12 @@ class Monitor(MonitorBase):
 
     def __del__(self) -> None:
         logging.debug("deleting monitor")
+
+    def destroy(self) -> None:
+        if self.poller is not None:
+            GLib.source_remove(self.poller)
+            self.poller = None
+        self.ppp_port = None
 
     def poll_stats(self) -> bool:
         try:
@@ -331,7 +337,17 @@ class NetUsage(AppletPlugin, GObject.GObject, PPPConnectedListener):
             Dialog(self)
 
     def on_unload(self) -> None:
-        del self._any_network
+        if Dialog.active_dialog is not None and Dialog.active_dialog.plugin is self:
+            Dialog.active_dialog.on_response(None, None)
+
+        if self._any_network is not None:
+            self._any_network.destroy()
+            self._any_network = None
+
+        for monitor in self.monitors:
+            monitor.destroy()
+        self.monitors = []
+
         self.parent.Plugins.Menu.unregister(self)
 
     def monitor_interface(self, device: Device, interface: str) -> None:

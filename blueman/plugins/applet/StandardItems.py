@@ -1,4 +1,5 @@
 from gettext import gettext as _
+from typing import cast
 
 from blueman.Functions import launch
 from blueman.main.DBusProxies import ManagerService
@@ -12,7 +13,7 @@ from blueman.plugins.applet.PowerManager import PowerManager, PowerStateListener
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
-from gi.repository import Gtk, Gdk
+from gi.repository import Gtk
 
 
 class StandardItems(AppletPlugin, PowerStateListener):
@@ -34,6 +35,11 @@ class StandardItems(AppletPlugin, PowerStateListener):
             "desc": _("Clicking the system tray icon will toggle the manager instead of focusing on it.")
         }
     }
+
+    _plugin_window: Gtk.ApplicationWindow | None
+    send: Gtk.MenuItem
+    devices: Gtk.MenuItem
+    adapters: Gtk.MenuItem
 
     def on_load(self) -> None:
         self._plugin_window: Gtk.ApplicationWindow | None = None
@@ -81,7 +87,7 @@ class StandardItems(AppletPlugin, PowerStateListener):
     def on_manager_state_changed(self, state: bool) -> None:
         self.change_sensitivity(state)
 
-    def on_power_state_changed(self, manager: PowerManager, state: bool) -> None:
+    def on_power_state_changed(self, _manager: PowerManager, state: bool) -> None:
         self.change_sensitivity(state)
 
     def on_send(self) -> None:
@@ -108,21 +114,20 @@ class StandardItems(AppletPlugin, PowerStateListener):
 
         button.connect("clicked", lambda _button: self.on_plugins())
 
-        about.action_area.pack_start(button, True, True, 0)
-        about.action_area.reorder_child(button, 0)
+        action_area = cast(Gtk.Box, about.get_action_area())
+        action_area.pack_start(button, True, True, 0)
+        action_area.reorder_child(button, 0)
 
         about.run()
         about.destroy()
 
-    def on_plugins(self) -> None:
-        def on_close(win: Gtk.Window, _event: Gdk.Event) -> bool:
-            win.destroy()
-            self._plugin_window = None
-            return False
+    def _on_plugin_dialog_destroy(self, _window: Gtk.Window) -> None:
+        self._plugin_window = None
 
+    def on_plugins(self) -> None:
         if self._plugin_window:
             self._plugin_window.present()
         else:
             self._plugin_window = PluginDialog(self.parent)
-            self._plugin_window.connect("delete-event", on_close)
+            self._plugin_window.connect("destroy", self._on_plugin_dialog_destroy)
             self._plugin_window.show()

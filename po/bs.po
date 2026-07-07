@@ -255,7 +255,6 @@ msgstr ""
 
 #: data/ui/services-network.ui:348
 #, fuzzy
-#| msgid "<b>PAN Support</b>"
 msgid "<b>NAP Support</b>"
 msgstr "<b>PAN Podrška</b>"
 
@@ -616,7 +615,6 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceList.py:342
 #, fuzzy
-#| msgid "Rename device"
 msgid "Unnamed device"
 msgstr "Preimenuj uređaj"
 
@@ -640,13 +638,11 @@ msgstr "Povezan"
 
 #: blueman/gui/manager/ManagerDeviceList.py:571
 #, fuzzy
-#| msgid "Trust"
 msgid "Trusted"
 msgstr "Povjerenje"
 
 #: blueman/gui/manager/ManagerDeviceList.py:573
 #, fuzzy
-#| msgid "Pair"
 msgid "Paired"
 msgstr "Par"
 
@@ -744,7 +740,6 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceMenu.py:206
 #, fuzzy
-#| msgid "Unknown"
 msgid "Unknown error"
 msgstr "Nepoznat"
 
@@ -763,7 +758,6 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceMenu.py:303
 #, fuzzy
-#| msgid "<b>Disconnect:</b>"
 msgid "<b>_Disconnect</b>"
 msgstr "<b>Odpoji:</b>"
 
@@ -1502,7 +1496,6 @@ msgstr "Prihvati"
 
 #: blueman/DeviceClass.py:242
 #, fuzzy
-#| msgid "Device"
 msgid "Mesh Device"
 msgstr "Uređaj"
 
@@ -1895,7 +1888,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:344
 #, fuzzy
-#| msgid "Plugins"
 msgid "Plug"
 msgstr "Priključci"
 
@@ -2017,7 +2009,6 @@ msgstr "mikrofon"
 
 #: blueman/DeviceClass.py:373
 #, fuzzy
-#| msgid "Audio Source"
 msgid "Generic Audio Source"
 msgstr "Izvor Zvuka"
 
@@ -2039,7 +2030,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:379
 #, fuzzy
-#| msgid "Service:"
 msgid "Service Desk"
 msgstr "Usluga:"
 
@@ -2230,7 +2220,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:427
 #, fuzzy
-#| msgid "Receiving file"
 msgid "Receiver"
 msgstr "Prijem datoteke"
 

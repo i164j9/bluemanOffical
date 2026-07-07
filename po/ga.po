@@ -57,7 +57,6 @@ msgstr "Taispeáin ionchur"
 
 #: data/ui/manager-main.ui:48
 #, fuzzy
-#| msgid "Bluetooth Device"
 msgid "Bluetooth Devices"
 msgstr "Gléas Bluetooth"
 
@@ -3184,7 +3183,6 @@ msgstr "Níl cuibheoir don nasc seo ar fáil"
 
 #: blueman/plugins/applet/RecentConns.py:191
 #, fuzzy
-#| msgid "Connecting…"
 msgid "Reconnect to…"
 msgstr "Ag nascadh…"
 

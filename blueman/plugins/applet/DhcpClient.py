@@ -17,18 +17,25 @@ class DhcpClient(AppletPlugin):
     __author__ = "Walmis"
     __dbus_iface_name__ = "org.blueman.Applet.DhcpClient"
 
-    _any_network = None
+    _any_network: AnyNetwork | None = None
+    querying: set[str]
+    _unloading: bool
 
     def on_load(self) -> None:
         self._any_network = AnyNetwork()
         self._any_network.connect_signal('property-changed', self._on_network_prop_changed)
 
-        self.querying: list[str] = []
+        self.querying: set[str] = set()
+        self._unloading = False
 
         self._add_dbus_method("DhcpClient", ("o",), "", self.dhcp_acquire)
 
     def on_unload(self) -> None:
-        del self._any_network
+        self._unloading = True
+        self.querying.clear()
+        if self._any_network is not None:
+            self._any_network.destroy()
+            self._any_network = None
 
     def _on_network_prop_changed(self, _network: AnyNetwork, key: str, value: Any, object_path: ObjectPath) -> None:
         if key == "Interface":
@@ -36,31 +43,39 @@ class DhcpClient(AppletPlugin):
                 self.dhcp_acquire(object_path)
 
     def dhcp_acquire(self, object_path: ObjectPath) -> None:
-        device = Network(obj_path=object_path)["Interface"]
-
-        if device not in self.querying:
-            self.querying.append(device)
-        else:
+        if self._unloading:
             return
 
-        if device != "":
-            def reply(_obj: Mechanism, result: str, _user_data: None) -> None:
-                logging.info(result)
-                Notification(_("Bluetooth Network"),
-                             _("Interface %(0)s bound to IP address %(1)s") % {"0": device, "1": result},
-                             icon_name="network-workgroup").show()
+        device = Network(obj_path=object_path)["Interface"]
 
-                self.querying.remove(device)
+        if device == "":
+            return
 
-            def err(_obj: Mechanism, result: GLib.Error, _user_data: None) -> None:
-                logging.warning(result)
-                Notification(_("Bluetooth Network"), _("Failed to obtain an IP address on %s") % device,
-                             icon_name="network-workgroup").show()
+        if device in self.querying:
+            return
+        self.querying.add(device)
 
-                self.querying.remove(device)
+        def reply(_obj: Mechanism, result: str, _user_data: None) -> None:
+            self.querying.discard(device)
+            if self._unloading:
+                return
 
-            Notification(_("Bluetooth Network"), _("Trying to obtain an IP address on %s\nPlease wait…" % device),
+            logging.info(result)
+            Notification(_("Bluetooth Network"),
+                         _("Interface %(0)s bound to IP address %(1)s") % {"0": device, "1": result},
                          icon_name="network-workgroup").show()
 
-            m = Mechanism()
-            m.DhcpClient('(s)', object_path, result_handler=reply, error_handler=err, timeout=120 * 1000)
+        def err(_obj: Mechanism, result: GLib.Error, _user_data: None) -> None:
+            self.querying.discard(device)
+            if self._unloading:
+                return
+
+            logging.warning(result)
+            Notification(_("Bluetooth Network"), _("Failed to obtain an IP address on %s") % device,
+                         icon_name="network-workgroup").show()
+
+        Notification(_("Bluetooth Network"), _("Trying to obtain an IP address on %s\nPlease wait…" % device),
+                     icon_name="network-workgroup").show()
+
+        m = Mechanism()
+        m.DhcpClient('(s)', object_path, result_handler=reply, error_handler=err, timeout=120 * 1000)

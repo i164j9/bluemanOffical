@@ -646,7 +646,6 @@ msgstr "Connectat"
 
 #: blueman/gui/manager/ManagerDeviceList.py:571
 #, fuzzy
-#| msgid "Trust"
 msgid "Trusted"
 msgstr "Confia"
 
@@ -747,7 +746,6 @@ msgstr "Mostra la informació del dispositiu"
 
 #: blueman/gui/manager/ManagerDeviceMenu.py:206
 #, fuzzy
-#| msgid "Unknown"
 msgid "Unknown error"
 msgstr "Desconegut"
 
@@ -872,7 +870,6 @@ msgstr ""
 
 #: blueman/gui/applet/PluginDialog.py:267
 #, fuzzy
-#| msgid "Dependency issue"
 msgid "No dependencies"
 msgstr "Qüestió de dependència"
 
@@ -1194,7 +1191,6 @@ msgstr "Joc"
 
 #: blueman/DeviceClass.py:168
 #, fuzzy
-#| msgid "Generic Phone"
 msgid "Generic Unknown"
 msgstr "Telèfon genèric"
 
@@ -1212,7 +1208,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:172
 #, fuzzy
-#| msgid "Generic Computer"
 msgid "Server-class Computer"
 msgstr "Ordinador genèric"
 
@@ -1242,7 +1237,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:180
 #, fuzzy
-#| msgid "Server"
 msgid "Blade Server"
 msgstr "Servidor"
 
@@ -1252,7 +1246,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:182
 #, fuzzy
-#| msgid "Wearable"
 msgid "Detachable"
 msgstr "Per a vestir"
 
@@ -1274,13 +1267,11 @@ msgstr "Rellotge genèric"
 
 #: blueman/DeviceClass.py:187
 #, fuzzy
-#| msgid "Wrist watch"
 msgid "Sports Watch"
 msgstr "Rellotge de polsera"
 
 #: blueman/DeviceClass.py:188
 #, fuzzy
-#| msgid "Wrist watch"
 msgid "Smartwatch"
 msgstr "Rellotge de polsera"
 
@@ -1327,7 +1318,6 @@ msgstr "Termòmetre genèric"
 
 #: blueman/DeviceClass.py:198
 #, fuzzy
-#| msgid "Generic Thermometer"
 msgid "Ear Thermometer"
 msgstr "Termòmetre genèric"
 
@@ -1354,7 +1344,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:204
 #, fuzzy
-#| msgid "Human Interface Device"
 msgid "Generic Human Interface Device"
 msgstr "Dispositiu d’interfície humana"
 
@@ -1423,7 +1412,6 @@ msgstr "Grup xarxa"
 
 #: blueman/DeviceClass.py:221
 #, fuzzy
-#| msgid "Computer"
 msgid "Cycling Computer"
 msgstr "Ordinador"
 
@@ -1486,7 +1474,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:236
 #, fuzzy
-#| msgid "Battery Service"
 msgid "Battery Switch"
 msgstr "Servei de la bateria"
 
@@ -1509,13 +1496,11 @@ msgstr "Grup xarxa"
 
 #: blueman/DeviceClass.py:241
 #, fuzzy
-#| msgid "Access point"
 msgid "Access Point"
 msgstr "Punt d’accés"
 
 #: blueman/DeviceClass.py:242
 #, fuzzy
-#| msgid "Device"
 msgid "Mesh Device"
 msgstr "Dispositiu"
 
@@ -1587,7 +1572,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:259
 #, fuzzy
-#| msgid "File Sender"
 msgid "Fire Sensor"
 msgstr "Eina d'enviament de fitxers"
 
@@ -1766,7 +1750,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:303
 #, fuzzy
-#| msgid "Generic Clock"
 msgid "Generic HVAC"
 msgstr "Rellotge genèric"
 
@@ -1821,7 +1804,6 @@ msgstr "Grup xarxa"
 
 #: blueman/DeviceClass.py:316
 #, fuzzy
-#| msgid "Generic Computer"
 msgid "Generic Humidifier"
 msgstr "Ordinador genèric"
 
@@ -1837,7 +1819,6 @@ msgstr "Connecta"
 
 #: blueman/DeviceClass.py:326
 #, fuzzy
-#| msgid "Access point"
 msgid "Access Door"
 msgstr "Punt d’accés"
 
@@ -1851,7 +1832,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:329
 #, fuzzy
-#| msgid "Access point"
 msgid "Access Lock"
 msgstr "Punt d’accés"
 
@@ -1873,13 +1853,11 @@ msgstr ""
 
 #: blueman/DeviceClass.py:334
 #, fuzzy
-#| msgid "Blocked"
 msgid "Locker"
 msgstr "Blocat"
 
 #: blueman/DeviceClass.py:335
 #, fuzzy
-#| msgid "Generic Medication Delivery"
 msgid "Generic Motorized Device"
 msgstr "Administració de medicaments genèrica"
 
@@ -1905,7 +1883,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:341
 #, fuzzy
-#| msgid "Generic Phone"
 msgid "Generic Power Device"
 msgstr "Telèfon genèric"
 
@@ -1919,7 +1896,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:344
 #, fuzzy
-#| msgid "Plugins"
 msgid "Plug"
 msgstr "Connectors"
 
@@ -1949,7 +1925,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:351
 #, fuzzy
-#| msgid "Generic Phone"
 msgid "Generic Light Source"
 msgstr "Telèfon genèric"
 
@@ -2016,7 +1991,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:367
 #, fuzzy
-#| msgid "Audio Sink"
 msgid "Generic Audio Sink"
 msgstr "Conducte de l'àudio"
 
@@ -2038,13 +2012,11 @@ msgstr ""
 
 #: blueman/DeviceClass.py:372
 #, fuzzy
-#| msgid "Smartphone"
 msgid "Speakerphone"
 msgstr "Telèfon intel·ligent"
 
 #: blueman/DeviceClass.py:373
 #, fuzzy
-#| msgid "Audio Source"
 msgid "Generic Audio Source"
 msgstr "Origen d'àudio"
 
@@ -2062,13 +2034,11 @@ msgstr ""
 
 #: blueman/DeviceClass.py:378
 #, fuzzy
-#| msgid "Pair Device"
 msgid "Broadcasting Device"
 msgstr "Aparella el dispositiu"
 
 #: blueman/DeviceClass.py:379
 #, fuzzy
-#| msgid "Service:"
 msgid "Service Desk"
 msgstr "Servei:"
 
@@ -2082,19 +2052,16 @@ msgstr ""
 
 #: blueman/DeviceClass.py:382
 #, fuzzy
-#| msgid "Audio Profile"
 msgid "Auditorium"
 msgstr "Perfil d'àudio"
 
 #: blueman/DeviceClass.py:383
 #, fuzzy
-#| msgid "Generic Media Player"
 msgid "Generic Motorized Vehicle"
 msgstr "Reproductor multimèdia genèric"
 
 #: blueman/DeviceClass.py:384
 #, fuzzy
-#| msgid "Camera"
 msgid "Car"
 msgstr "Càmera"
 
@@ -2124,7 +2091,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:391
 #, fuzzy
-#| msgid "Vehicle"
 msgid "Light Vehicle"
 msgstr "Vehicle"
 
@@ -2175,7 +2141,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:403
 #, fuzzy
-#| msgid "Microphone"
 msgid "Microwave"
 msgstr "Micròfon"
 
@@ -2225,7 +2190,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:415
 #, fuzzy
-#| msgid "Generic Medication Delivery"
 msgid "Generic Wearable Audio Device"
 msgstr "Administració de medicaments genèrica"
 
@@ -2239,7 +2203,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:420
 #, fuzzy
-#| msgid "Generic Watch"
 msgid "Generic Aircraft"
 msgstr "Rellotge genèric"
 
@@ -2249,7 +2212,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:422
 #, fuzzy
-#| msgid "Microphone"
 msgid "Microlight"
 msgstr "Micròfon"
 
@@ -2271,7 +2233,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:427
 #, fuzzy
-#| msgid "Receiving file"
 msgid "Receiver"
 msgstr "S'està rebent el fitxer"
 
@@ -2353,7 +2314,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:446
 #, fuzzy
-#| msgid "Portable audio"
 msgid "Portable handheld console"
 msgstr "Àudio portàtil"
 
@@ -2385,7 +2345,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:453
 #, fuzzy
-#| msgid "Weight Scale"
 msgid "Generic Weight Scale"
 msgstr "Bàscula"
 
@@ -2427,7 +2386,6 @@ msgstr "Administració de medicaments genèrica"
 
 #: blueman/DeviceClass.py:463
 #, fuzzy
-#| msgid "Generic Thermometer"
 msgid "Generic Spirometer"
 msgstr "Termòmetre genèric"
 
@@ -2445,7 +2403,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:467
 #, fuzzy
-#| msgid "Location and Navigation"
 msgid "Location and Navigation Display"
 msgstr "Localització i navegació"
 
@@ -3231,10 +3188,6 @@ msgstr "Esteu segur que voleu restablir el comptador?"
 
 #: blueman/plugins/applet/NetUsage.py:289
 #, fuzzy
-#| msgid ""
-#| "Allows you to monitor your (mobile broadband) network traffic usage. "
-#| "Useful for limited data access plans. This plugin tracks every device "
-#| "seperately."
 msgid ""
 "Allows you to monitor your (mobile broadband) network traffic usage. Useful "
 "for limited data access plans. This plugin tracks every device separately."
@@ -3495,9 +3448,6 @@ msgstr ""
 
 #: blueman/plugins/applet/ShowConnected.py:22
 #, fuzzy
-#| msgid ""
-#| "Adds an indication on the status icon when Bluetooth is active and shows "
-#| "the number of connections in the tooltip."
 msgid ""
 "Adds an indication on the status icon when Bluetooth is active and shows the "
 "connections in the tooltip."
@@ -3555,7 +3505,6 @@ msgstr "Detectable… %ss"
 
 #: blueman/plugins/applet/DiscvManager.py:63
 #, fuzzy
-#| msgid "Discoverable… %ss"
 msgid "Discoverable…"
 msgstr "Detectable… %ss"
 
@@ -3594,14 +3543,6 @@ msgstr "Script a executar en connectar"
 
 #: blueman/plugins/applet/SerialManager.py:33
 #, fuzzy
-#| msgid ""
-#| "<span size=\"small\">The following arguments will be passed:\n"
-#| "Address, Name, service name, uuid16s, rfcomm node\n"
-#| "For example:\n"
-#| "AA:BB:CC:DD:EE:FF, Phone, DUN service, 0x1103, /dev/rfcomm0\n"
-#| "uuid16s are returned as a comma seperated list\n"
-#| "\n"
-#| "Upon device disconnection the script will be sent a HUP signal</span>"
 msgid ""
 "<span size=\"small\">The following arguments will be passed:\n"
 "Address, Name, service name, uuid16s, rfcomm node\n"
@@ -3682,7 +3623,6 @@ msgstr "Utilitza libappindicator per mostrar una icona d'estat"
 
 #: blueman/plugins/applet/PulseAudioProfile.py:19
 #, fuzzy
-#| msgid "Adds standard menu items to the status icon menu"
 msgid "Adds audio profile selector to the status icon menu"
 msgstr "Afegeix les opcions de menú estàndards al menú de la icona d'estat"
 

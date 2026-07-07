@@ -57,7 +57,6 @@ msgstr ""
 
 #: data/ui/manager-main.ui:48
 #, fuzzy
-#| msgid "Device"
 msgid "Bluetooth Devices"
 msgstr "Lööpwark"
 
@@ -728,7 +727,6 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceMenu.py:206
 #, fuzzy
-#| msgid "Unknown"
 msgid "Unknown error"
 msgstr "Unbekannt"
 
@@ -1156,7 +1154,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:168
 #, fuzzy
-#| msgid "Unknown"
 msgid "Generic Unknown"
 msgstr "Unbekannt"
 
@@ -1446,7 +1443,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:242
 #, fuzzy
-#| msgid "Device"
 msgid "Mesh Device"
 msgstr "Lööpwark"
 
@@ -1828,7 +1824,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:344
 #, fuzzy
-#| msgid "Plugins"
 msgid "Plug"
 msgstr "Plugins"
 

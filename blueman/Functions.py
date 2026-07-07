@@ -23,6 +23,8 @@ from collections.abc import Callable, Iterable
 import re
 import os
 import pathlib
+import shlex
+import shutil
 import sys
 import errno
 from gettext import gettext as _
@@ -54,6 +56,11 @@ __all__ = ["check_bluetooth_status", "launch", "setup_icon_path", "adapter_path_
            "get_local_interfaces", "plugin_names", "log_system_info"]
 
 
+def _is_missing_power_manager_interface(error: GLib.Error) -> bool:
+    message = str(error)
+    return "org.freedesktop.DBus.Error.UnknownMethod" in message or "No such interface" in message
+
+
 def check_bluetooth_status(message: str, exitfunc: Callable[[], Any]) -> None:
     try:
         applet = AppletService()
@@ -67,7 +74,15 @@ def check_bluetooth_status(message: str, exitfunc: Callable[[], Any]) -> None:
     if "PowerManager" not in applet.QueryPlugins():
         return
 
-    if not powermanager.get_bluetooth_status():
+    try:
+        bluetooth_status = powermanager.get_bluetooth_status()
+    except GLib.Error as e:
+        if _is_missing_power_manager_interface(e):
+            logging.info("PowerManager DBus interface unavailable: %s", e)
+            return
+        raise
+
+    if not bluetooth_status:
         d = Gtk.MessageDialog(
             type=Gtk.MessageType.ERROR, icon_name="blueman",
             text=_("Bluetooth Turned Off"), secondary_text=message)
@@ -81,8 +96,16 @@ def check_bluetooth_status(message: str, exitfunc: Callable[[], Any]) -> None:
             exitfunc()
             return
 
-    powermanager.set_bluetooth_status(True)
-    if not powermanager.get_bluetooth_status():
+    try:
+        powermanager.set_bluetooth_status(True)
+        bluetooth_status = powermanager.get_bluetooth_status()
+    except GLib.Error as e:
+        if _is_missing_power_manager_interface(e):
+            logging.info("PowerManager DBus interface unavailable: %s", e)
+            return
+        raise
+
+    if not bluetooth_status:
         print('Failed to enable bluetooth')
         exitfunc()
 
@@ -116,10 +139,24 @@ def launch(
     env = os.environ
     env["BLUEMAN_EVENT_TIME"] = str(timestamp)
 
+    parts = shlex.split(cmd)
+    if not parts:
+        logging.error("No command provided to launch")
+        return False
+
+    executable, *arguments = parts
     if not system:
-        command = BIN_DIR / cmd
+        command = BIN_DIR / executable
     else:
-        command = pathlib.Path(cmd).expanduser()
+        command = pathlib.Path(executable).expanduser()
+
+    commandline_parts: list[str]
+    if not system and command.is_file() and not os.access(command, os.X_OK):
+        commandline_parts = [sys.executable, command.as_posix(), *arguments]
+    else:
+        commandline_parts = [command.as_posix(), *arguments]
+
+    commandline = " ".join(shlex.quote(part) for part in commandline_parts)
 
     if paths:
         files: list[Gio.File] | None = [Gio.File.new_for_commandline_arg(p) for p in paths]
@@ -129,7 +166,7 @@ def launch(
     if icon_name and context is not None:
         context.set_icon_name(icon_name)
 
-    appinfo = Gio.AppInfo.create_from_commandline(command.as_posix(), name, flags)
+    appinfo = Gio.AppInfo.create_from_commandline(commandline, name, flags)
     launched: bool = appinfo.launch(files, context)
 
     if not launched:
@@ -364,15 +401,24 @@ def log_system_info() -> None:
         bluez_version = stdout.strip() if stdout else "Unknown"
         logging.info("BlueZ version: %s", bluez_version)
 
-    try:
-        process = Gio.Subprocess.new(
-            [BLUETOOTHD_PATH, "-v"],
-            Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_MERGE,
-        )
-    except GLib.Error as err:
-        logging.info("Failed to start bluetoothd probe: %s", err)
+    bluetoothd_path = BLUETOOTHD_PATH if BLUETOOTHD_PATH.exists() else None
+    if bluetoothd_path is None:
+        discovered_path = shutil.which("bluetoothd")
+        if discovered_path is not None:
+            bluetoothd_path = Path(discovered_path)
+
+    if bluetoothd_path is None:
+        logging.info("BlueZ version: Unknown (bluetoothd executable not found)")
     else:
-        process.communicate_utf8_async(None, None, on_bluez_version_complete)
+        try:
+            process = Gio.Subprocess.new(
+                [os.fspath(bluetoothd_path), "-v"],
+                Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_MERGE,
+            )
+        except GLib.Error as err:
+            logging.info("Failed to start bluetoothd probe: %s", err)
+        else:
+            process.communicate_utf8_async(None, None, on_bluez_version_complete)
 
     etc_os_release = Path("/etc/os-release")
     lib_os_release = Path("/usr/lib/os-release")

@@ -90,7 +90,10 @@ class DeviceList(GenericList):
         # handle icon theme changes
         self.icon_theme.connect("changed", self.on_icon_theme_changed)
 
-    def destroy(self) -> None:
+    def destroy(self, *args: object) -> None:
+        menu = getattr(self, "menu", None)
+        if menu is not None:
+            menu.destroy()
         self.any_device.disconnect(self._anydevhandler)
         self._any_adapter.disconnect(self._anyadapterhandler)
         self.selection.disconnect(self._selectionhandler)
@@ -189,14 +192,14 @@ class DeviceList(GenericList):
         if adapter is not None:
             adapter_path = self.manager.find_adapter(adapter)
             if adapter_path is None:
-                logging.warning(f'Failed to find adapter {adapter}, trying first available.')
+                logging.warning("Failed to find adapter %s, trying first available.", adapter)
 
         if adapter_path is None:
             # Try and find any adapter
             adapter_path = self.manager.find_adapter(None)
 
         if adapter_path is not None:
-            logging.debug(f"Setting adapter to: {adapter_path_to_name(adapter_path)}")
+            logging.debug("Setting adapter to: %s", adapter_path_to_name(adapter_path))
             emit_signal = adapter_path != self.__adapter_path
             self.Adapter = Adapter(obj_path=adapter_path)
             self.__adapter_path = adapter_path
@@ -318,7 +321,7 @@ class DeviceList(GenericList):
                     del self.path_to_row[existing]
 
         if object_path:
-            logging.info(f"Caching new device {object_path}")
+            logging.info("Caching new device %s", object_path)
             self.path_to_row[object_path] = Gtk.TreeRowReference.new(self.liststore,
                                                                      self.liststore.get_path(tree_iter))
 

@@ -49,6 +49,10 @@ class AutoConnect(AppletPlugin):
         super().__init__(parent)
         self.__applet = parent
         self.__event_source: int | None = None
+        self._active = False
+
+    def on_load(self) -> None:
+        self._active = True
 
     def on_manager_state_changed(self, state: bool) -> None:
         if state:
@@ -56,7 +60,7 @@ class AutoConnect(AppletPlugin):
         else:
             self.stop_timer()
 
-    def option_changed(self, key: str, value: Any) -> None:
+    def option_changed(self, key: str, _value: Any) -> None:
         if key == "interval":
             self.start_timer()
 
@@ -83,6 +87,7 @@ class AutoConnect(AppletPlugin):
             self.__event_source = None
 
     def on_unload(self) -> None:
+        self._active = False
         self.stop_timer()
 
     @staticmethod
@@ -108,6 +113,9 @@ class AutoConnect(AppletPlugin):
                 continue
 
             def reply(dev: Device | None = device, service_name: str = ServiceUUID(uuid).name) -> None:
+                if not self._active:
+                    return
+
                 if not self.get_option("notification"):
                     return
 
@@ -117,7 +125,7 @@ class AutoConnect(AppletPlugin):
                              icon_name=dev["Icon"]).show()
 
             def err(_reason: Exception | str) -> None:
-                pass
+                return
 
             self.parent.Plugins.DBusService.connect_service(device.get_object_path(), uuid, reply, err)
 

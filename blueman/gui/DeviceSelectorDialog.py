@@ -13,6 +13,12 @@ from gi.repository import Gtk
 from gi.repository import Gdk
 
 
+DOUBLE_BUTTON_PRESS = cast(
+    Gdk.EventType,
+    getattr(Gdk.EventType, "_2BUTTON_PRESS", Gdk.EventType.BUTTON_PRESS),
+)
+
+
 class DeviceRow(Gtk.ListBoxRow):
     def __init__(
             self,
@@ -162,12 +168,12 @@ class DeviceSelector:
             return
 
         row = cast(DeviceRow, row)
-        logging.debug(f"{row.device_path}")
+        logging.debug("%s", row.device_path)
         device = Device(obj_path=row.device_path)
         self.selection = row.adapter_path, device
 
     def __on_button_press(self, _listbox: Gtk.ListBox, event: Gdk.EventButton) -> bool:
-        if event.type == Gdk.EventType._2BUTTON_PRESS:
+        if event.type == DOUBLE_BUTTON_PRESS:
             self.dialog.response(Gtk.ResponseType.ACCEPT)
             return True
         return False

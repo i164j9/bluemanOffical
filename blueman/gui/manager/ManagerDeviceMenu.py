@@ -67,6 +67,7 @@ class ManagerDeviceMenu(Gtk.Menu):
     __instances__: list["ManagerDeviceMenu"] = []
 
     SelectedDevice: Device
+    _cleanup_done: bool
 
     def __init__(self, blueman: "Blueman") -> None:
         super().__init__()
@@ -74,16 +75,18 @@ class ManagerDeviceMenu(Gtk.Menu):
         self.Blueman = blueman
 
         self.is_popup = False
+        self._cleanup_done = False
+        self.connect("destroy", lambda *_args: self._cleanup())
 
         self._device_property_changed_signal = self.Blueman.List.connect("device-property-changed",
                                                                          self.on_device_property_changed)
         ManagerDeviceMenu.__instances__.append(self)
 
         self._any_network = AnyNetwork()
-        self._any_network.connect_signal('property-changed', self._on_service_property_changed)
+        self._any_network_handler = self._any_network.connect_signal('property-changed', self._on_service_property_changed)
 
         self._any_device = AnyDevice()
-        self._any_device.connect_signal('property-changed', self._on_service_property_changed)
+        self._any_device_handler = self._any_device.connect_signal('property-changed', self._on_service_property_changed)
 
         try:
             self._appl: AppletService | None = AppletService()
@@ -96,11 +99,33 @@ class ManagerDeviceMenu(Gtk.Menu):
     def __del__(self) -> None:
         logging.debug("deleting devicemenu")
 
-    def popup_at_pointer(self, event: Gdk.Event | None) -> None:
+    def _cleanup(self) -> None:
+        if self._cleanup_done:
+            return
+
+        self._cleanup_done = True
+
+        if self.Blueman.List.handler_is_connected(self._device_property_changed_signal):
+            self.Blueman.List.disconnect(self._device_property_changed_signal)
+
+        if self._any_network.handler_is_connected(self._any_network_handler):
+            self._any_network.disconnect_signal(self._any_network_handler)
+        self._any_network.destroy()
+
+        if self._any_device.handler_is_connected(self._any_device_handler):
+            self._any_device.disconnect_signal(self._any_device_handler)
+        self._any_device.destroy()
+
+        try:
+            ManagerDeviceMenu.__instances__.remove(self)
+        except ValueError:
+            pass
+
+    def show_popup_at_pointer(self, event: Gdk.Event | None) -> None:
         self.is_popup = True
         self.generate()
 
-        super().popup_at_pointer(event)
+        Gtk.Menu.popup_at_pointer(self, event)
 
     def clear(self) -> None:
         def remove_and_destroy(child: Gtk.Widget) -> None:
@@ -112,8 +137,8 @@ class ManagerDeviceMenu(Gtk.Menu):
     def set_op(self, device: Device, message: str) -> None:
         ManagerDeviceMenu.__ops__[device.get_object_path()] = message
         for inst in ManagerDeviceMenu.__instances__:
-            logging.info(f"op: regenerating instance {inst}")
-            if inst.SelectedDevice == self.SelectedDevice and not (inst.is_popup and not inst.props.visible):
+            logging.debug("op: regenerating instance %s", inst)
+            if inst.SelectedDevice == self.SelectedDevice and not (inst.is_popup and not inst.get_visible()):
                 inst.generate()
 
     def get_op(self, device: Device) -> str | None:
@@ -126,11 +151,11 @@ class ManagerDeviceMenu(Gtk.Menu):
         object_path = device.get_object_path()
         message = self.__ops__.pop(object_path, None)
         if message is None:
-            logging.error(f"No message found for {object_path}")
+            logging.error("No message found for %s", object_path)
 
         for inst in ManagerDeviceMenu.__instances__:
-            logging.info(f"op: regenerating instance {inst}")
-            if inst.SelectedDevice == self.SelectedDevice and not (inst.is_popup and not inst.props.visible):
+            logging.debug("op: regenerating instance %s", inst)
+            if inst.SelectedDevice == self.SelectedDevice and not (inst.is_popup and not inst.get_visible()):
                 inst.generate()
 
     def _on_service_property_changed(self, _service: AnyNetwork | AnyDevice, key: str, _value: object,
@@ -141,17 +166,37 @@ class ManagerDeviceMenu(Gtk.Menu):
     GENERIC_CONNECT = "00000000-0000-0000-0000-000000000000"
 
     def connect_service(self, device: Device, uuid: str = GENERIC_CONNECT) -> None:
+        completed = False
+
         def success(_obj: AppletService, _result: None, _user_data: None) -> None:
+            nonlocal completed
+            if completed:
+                return
+
+            completed = True
             logging.info("success")
             prog.message(_("Success!"))
 
             self.unset_op(device)
 
         def fail(_obj: AppletService | None, result: GLib.Error, _user_data: None) -> None:
+            nonlocal completed
+            if completed:
+                logging.debug("ignoring late connect failure %s", result)
+                return
+
+            completed = True
+            err = ManagerDeviceMenu._classify_bluez_error(result.message)
+            if err == ManagerDeviceMenu._BluezError.CANCELED:
+                prog.finalize()
+                self.unset_op(device)
+                logging.debug("connect canceled %s", result)
+                return
+
             prog.message(_("Failed"))
 
             self.unset_op(device)
-            logging.warning(f"fail {result}")
+            logging.warning("fail %s", result)
             self._handle_error_message(result)
 
         self.set_op(device, _("Connecting…"))
@@ -175,7 +220,7 @@ class ManagerDeviceMenu(Gtk.Menu):
             self.generate()
 
         def err(_obj: AppletService | None, result: GLib.Error, _user_date: None) -> None:
-            logging.warning(f"disconnect failed {result}")
+            logging.warning("disconnect failed %s", result)
             msg, tb = e_(result.message)
             self.Blueman.infobar_update(_("Disconnection Failed: ") + msg, bt=tb)
             self.generate()
@@ -189,7 +234,7 @@ class ManagerDeviceMenu(Gtk.Menu):
 
     def on_device_property_changed(self, lst: "ManagerDeviceList", _device: Device, tree_iter: Gtk.TreeIter,
                                    key_value: tuple[str, object]) -> None:
-        key, value = key_value
+        key, _value = key_value
         # print "menu:", key, value
         if lst.compare(tree_iter, lst.selected()):
             if key in ("Connected", "UUIDs", "Trusted", "Paired", "Blocked"):
@@ -243,6 +288,10 @@ class ManagerDeviceMenu(Gtk.Menu):
         "br-connection-canceled": _BluezError.CANCELED,
     }
 
+    @classmethod
+    def _classify_bluez_error(cls, message: str) -> _BluezError | None:
+        return cls._BLUEZ_ERROR_MAP.get(message.split(":", 3)[-1].strip())
+
     def show_generic_connect_calc(self, device_uuids: Iterable[str]) -> bool:
         # Generic (dis)connect
         for uuid in device_uuids:
@@ -261,7 +310,7 @@ class ManagerDeviceMenu(Gtk.Menu):
     def generate(self) -> None:
         self.clear()
 
-        if not self.is_popup or self.props.visible:
+        if not self.is_popup or self.get_visible():
             selected = self.Blueman.List.selected()
             if not selected:
                 return

@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 from collections.abc import Collection, Iterable
 
 import cairo
@@ -19,6 +19,9 @@ if TYPE_CHECKING:
     BaseContext = cairo.Context[cairo.Surface]
 
 
+CAIRO_OPERATOR_OVER = cast(int, getattr(cairo, "OPERATOR_OVER"))
+
+
 class AnimBase(GObject.GObject):
     __gsignals__: GSignals = {
         'animation-finished': (GObject.SignalFlags.RUN_LAST, None, ()),
@@ -28,6 +31,10 @@ class AnimBase(GObject.GObject):
         super().__init__()
         self._source: int | None = None
         self._state = state
+        self._start = state
+        self._end = state
+        self._duration = 0
+        self._step_size = 0.0
         self.frozen = False
         self.fps = 24.0
 
@@ -115,19 +122,17 @@ class TreeRowFade(AnimBase):
         self.stylecontext = tw.get_style_context()
         self.columns = columns
 
-    def unref(self) -> None:
+    def destroy(self) -> None:
         if self.sig is not None:
             self.tw.disconnect(self.sig)
             self.sig = None
 
-    def on_draw(self, widget: Gtk.Widget, cr: "BaseContext") -> bool:
+    def on_draw(self, _widget: Gtk.Widget, cr: "BaseContext") -> bool:
         if self.frozen:
             return False
 
         if not self.row.valid():
-            if self.sig is not None:
-                self.tw.disconnect(self.sig)
-                self.sig = None
+            self.destroy()
             return False
 
         path = self.row.get_path()
@@ -138,7 +143,7 @@ class TreeRowFade(AnimBase):
         if path is None:
             return False
 
-        color = self.stylecontext.get_background_color(Gtk.StateFlags.NORMAL)
+        color = self.stylecontext.get_background_color(self.stylecontext.get_state())
 
         if not self.columns:
             self.columns = self.tw.get_columns()
@@ -151,7 +156,7 @@ class TreeRowFade(AnimBase):
         cr.clip()
 
         cr.set_source_rgba(color.red, color.green, color.blue, 1.0 - self.get_state())
-        cr.set_operator(cairo.OPERATOR_OVER)
+        cr.set_operator(CAIRO_OPERATOR_OVER)
         cr.paint()
 
         return False
@@ -174,7 +179,7 @@ class CellFade(AnimBase):
         for i in columns:
             self.columns.append(self.tw.get_column(i))
 
-    def unref(self) -> None:
+    def destroy(self) -> None:
         if self.sig is not None:
             self.tw.disconnect(self.sig)
             self.sig = None
@@ -184,9 +189,8 @@ class CellFade(AnimBase):
             return False
 
         if not self.row.valid():
-            if self.sig is not None:
-                self.tw.disconnect(self.sig)
-                self.sig = None
+            self.destroy()
+            return False
 
         assert self.tw.liststore is not None
         path = self.row.get_path()
@@ -252,7 +256,7 @@ class WidgetFade(AnimBase):
     def on_draw(self, _widget: Gtk.Widget, cr: "BaseContext") -> bool:
         if not self.frozen:
             cr.set_source_rgba(self.color.red, self.color.green, self.color.blue, self.color.alpha - self.get_state())
-            cr.set_operator(cairo.OPERATOR_OVER)
+            cr.set_operator(CAIRO_OPERATOR_OVER)
             cr.paint()
         return False
 

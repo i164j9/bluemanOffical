@@ -23,8 +23,10 @@ class Networking(AppletPlugin):
     _config_handler_id: int | None = None
     _registered: dict[ObjectPath, bool]
     Config: Gio.Settings
+    _active: bool
 
     def on_load(self) -> None:
+        self._active = True
         self._registered: dict[ObjectPath, bool] = {}
 
         self.Config = Gio.Settings(schema_id="org.blueman.network")
@@ -46,9 +48,13 @@ class Networking(AppletPlugin):
             return
 
         def reply(_obj: Mechanism, _result: None, _user_data: None) -> None:
-            pass
+            if not self._active:
+                return
 
         def err(_obj: Mechanism, result: GLib.Error, _user_data: None) -> None:
+            if not self._active:
+                return
+
             d = ErrorDialog("<b>Failed to apply network settings</b>",
                             "You might not be able to connect to the Bluetooth network via this machine",
                             result,
@@ -62,6 +68,7 @@ class Networking(AppletPlugin):
                         False, result_handler=reply, error_handler=err)
 
     def on_unload(self) -> None:
+        self._active = False
         for adapter_path in self._registered:
             s = NetworkServer(obj_path=adapter_path)
             s.unregister("nap")

@@ -29,6 +29,16 @@ class ShowConnected(AppletPlugin, StatusIconProvider):
     _enumerate_source_id: int | None = None
     _battery_watcher: BatteryWatcher
 
+    def _set_default_tooltip_title(self) -> None:
+        if 'PowerManager' in self.parent.Plugins.get_loaded():
+            status = self.parent.Plugins.PowerManager.get_bluetooth_status()
+            if status:
+                self.parent.Plugins.StatusIcon.set_tooltip_title(_("Bluetooth Enabled"))
+            else:
+                self.parent.Plugins.StatusIcon.set_tooltip_title(_("Bluetooth Disabled"))
+        else:
+            self.parent.Plugins.StatusIcon.set_tooltip_title("Blueman")
+
     def on_load(self) -> None:
         self._connections: set[ObjectPath] = set()
         self.active = False
@@ -41,7 +51,10 @@ class ShowConnected(AppletPlugin, StatusIconProvider):
 
     def on_unload(self) -> None:
         self.parent.Plugins.StatusIcon.set_tooltip_text(None)
+        self._set_default_tooltip_title()
         self._connections = set()
+        self.active = False
+        self.initialized = False
         self.parent.Plugins.StatusIcon.icon_should_change()
         for handler in self._handlers:
             self.parent.Plugins.disconnect(handler)
@@ -49,7 +62,7 @@ class ShowConnected(AppletPlugin, StatusIconProvider):
         if self._enumerate_source_id is not None:
             GLib.source_remove(self._enumerate_source_id)
             self._enumerate_source_id = None
-        del self._battery_watcher
+        self._battery_watcher.destroy()
 
     def on_status_icon_query_icon(self) -> str | None:
         if self._connections:
@@ -85,14 +98,7 @@ class ShowConnected(AppletPlugin, StatusIconProvider):
             self.parent.Plugins.StatusIcon.set_tooltip_text("\n".join(map(build_line, self._connections)))
         else:
             self.parent.Plugins.StatusIcon.set_tooltip_text(None)
-            if 'PowerManager' in self.parent.Plugins.get_loaded():
-                status = self.parent.Plugins.PowerManager.get_bluetooth_status()
-                if status:
-                    self.parent.Plugins.StatusIcon.set_tooltip_title(_("Bluetooth Enabled"))
-                else:
-                    self.parent.Plugins.StatusIcon.set_tooltip_title(_("Bluetooth Disabled"))
-            else:
-                self.parent.Plugins.StatusIcon.set_tooltip_title("Blueman")
+            self._set_default_tooltip_title()
 
     def on_manager_state_changed(self, state: bool) -> None:
         if state:

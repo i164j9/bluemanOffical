@@ -1,4 +1,4 @@
-from ctypes import *
+from ctypes import CDLL, CFUNCTYPE, POINTER, Structure, c_char, c_char_p, c_int, c_uint32, c_void_p, cast, py_object, pythonapi
 from enum import IntEnum
 from typing import TYPE_CHECKING, Any, Optional, TypedDict
 from collections.abc import Callable, Mapping
@@ -14,8 +14,8 @@ from blueman.bluemantyping import GSignals
 try:
     libpulse = CDLL("libpulse.so.0")
     libpulse_glib = CDLL("libpulse-mainloop-glib.so.0")
-except OSError:
-    raise ImportError("Could not load pulseaudio shared library")
+except OSError as exc:
+    raise ImportError("Could not load pulseaudio shared library") from exc
 
 if TYPE_CHECKING:
     from ctypes import _FuncPointer, _NamedFuncPointer, _Pointer
@@ -201,19 +201,35 @@ class PulseAudioUtils(GObject.GObject, metaclass=SingletonGObjectMeta):
         if not self.connected:
             raise PANotConnected("Connection to PulseAudio daemon is not established")
 
+    def clear_reconnect_timer(self) -> None:
+        if self._reconnect_source_id is not None:
+            GLib.source_remove(self._reconnect_source_id)
+            self._reconnect_source_id = None
+
+    def schedule_reconnect(self) -> None:
+        if self._reconnect_source_id is not None:
+            return
+
+        def reconnect() -> bool:
+            self._reconnect_source_id = None
+            return self.connect_pulseaudio()
+
+        self._reconnect_source_id = GLib.timeout_add(5000, reconnect)
+
     @staticmethod
     def pa_context_event(pa_context: c_void_p, self: "PulseAudioUtils") -> None:
         if not self:
             return
 
         state = pa_context_get_state(pa_context)
-        logging.info(state)
+        logging.debug(state)
         if state == ContextState.READY:
+            self.clear_reconnect_timer()
             self.connected = True
             self.emit("connected")
             mask = SubscriptionMask.CARD | SubscriptionMask.MODULE
 
-            self.simple_callback(lambda x: logging.info(x),
+            self.simple_callback(logging.debug,
                                  pa_context_subscribe,
                                  mask)
         else:
@@ -223,7 +239,7 @@ class PulseAudioUtils(GObject.GObject, metaclass=SingletonGObjectMeta):
 
         if self.prev_state == ContextState.READY and state == ContextState.FAILED:
             logging.info("Pulseaudio probably crashed, restarting in 5s")
-            GLib.timeout_add(5000, self.connect_pulseaudio)
+            self.schedule_reconnect()
 
         self.prev_state = state
 
@@ -268,7 +284,8 @@ class PulseAudioUtils(GObject.GObject, metaclass=SingletonGObjectMeta):
 
         args += (info["cb_info"], py_object(info))
         op = func(self.pa_context, *args)
-        pa_operation_unref(op)
+        if op:
+            pa_operation_unref(op)
 
     def simple_callback(self, handler: Callable[[int], None], func: "_NamedFuncPointer", *args: Any) -> None:
 
@@ -284,6 +301,7 @@ class PulseAudioUtils(GObject.GObject, metaclass=SingletonGObjectMeta):
         if not op:
             logging.info("Operation failed")
             logging.error(func.__name__)
+            return
         pa_operation_unref(op)
 
     def __card_info(self, card_info: "_Pointer[PaCardInfo]") -> CardInfo:
@@ -337,7 +355,7 @@ class PulseAudioUtils(GObject.GObject, metaclass=SingletonGObjectMeta):
         self.simple_callback(callback, pa_context_set_card_profile_by_index, card, profile.encode("UTF-8"))
 
     def __event_callback(self, _context: c_void_p, event_type: int, idx: int, _userdata: c_void_p) -> None:
-        logging.info(f"{event_type} {idx}")
+        logging.debug("%s %s", event_type, idx)
         self.emit("event", event_type, idx)
 
     def __init__(self) -> None:
@@ -355,12 +373,15 @@ class PulseAudioUtils(GObject.GObject, metaclass=SingletonGObjectMeta):
         self.pa_context = None
 
         self.prev_state = 0
+        self._reconnect_source_id: int | None = None
 
         self.connect_pulseaudio()
 
         weakref.finalize(self, self._on_delete)
 
     def connect_pulseaudio(self) -> bool:
+        self.clear_reconnect_timer()
+
         if not self.connected:
             if self.pa_context:
                 pa_context_unref(self.pa_context)
@@ -382,8 +403,11 @@ class PulseAudioUtils(GObject.GObject, metaclass=SingletonGObjectMeta):
     def _on_delete(self) -> None:
         logging.info("Destroying PulseAudioUtils instance")
 
-        pa_context_disconnect(self.pa_context)
-        pa_context_unref(self.pa_context)
+        self.clear_reconnect_timer()
+
+        if self.pa_context is not None:
+            pa_context_disconnect(self.pa_context)
+            pa_context_unref(self.pa_context)
         self.pa_context = None
 
         del self.ctx_cb

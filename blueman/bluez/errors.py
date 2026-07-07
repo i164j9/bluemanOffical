@@ -130,7 +130,11 @@ __DICT_ERROR__ = {'org.bluez.Error.Failed': DBusFailedError,
 
 
 def parse_dbus_error(exception: GLib.Error) -> BluezDBusException:
-    gerror, dbus_error, message = exception.message.split(':', 2)
+    parts = exception.message.split(':', 2)
+    if len(parts) != 3:
+        return BluezDBusException(exception.message)
+
+    _gerror, dbus_error, message = parts
     try:
         return __DICT_ERROR__[dbus_error](message)
     except KeyError:

@@ -2,6 +2,7 @@ import importlib
 import logging
 import os
 import pathlib
+from typing import cast
 from blueman.Functions import plugin_names
 
 import blueman.plugins.mechanism
@@ -10,6 +11,9 @@ from gi.repository import GLib, Gio
 
 from blueman.main.DbusService import DbusService, DbusError
 from blueman.plugins.MechanismPlugin import MechanismPlugin
+
+
+NO_DBUS_PROXY_FLAGS = cast(Gio.DBusProxyFlags, 0)
 
 
 class Timer:
@@ -51,13 +55,13 @@ class MechanismApplication(DbusService):
             try:
                 self.pk: Gio.DBusProxy | None = Gio.DBusProxy.new_for_bus_sync(
                     Gio.BusType.SYSTEM,
-                    Gio.DBusProxyFlags.NONE,
+                    NO_DBUS_PROXY_FLAGS,
                     None,
                     'org.freedesktop.PolicyKit1',
                     '/org/freedesktop/PolicyKit1/Authority',
                     'org.freedesktop.PolicyKit1.Authority')
-            except Exception as e:
-                logging.exception(e)
+            except GLib.Error:
+                logging.error("Failed to create PolicyKit proxy", exc_info=True)
                 self.pk = None
         else:
             self.pk = None
@@ -69,11 +73,11 @@ class MechanismApplication(DbusService):
             try:
                 importlib.import_module(f"blueman.plugins.mechanism.{plugin}")
             except ImportError:
-                logging.error(f"Skipping plugin {plugin}", exc_info=True)
+                logging.error("Skipping plugin %s", plugin, exc_info=True)
 
         classes = MechanismPlugin.__subclasses__()
         for cls in classes:
-            logging.info(f"loading {cls.__name__}")
+            logging.info("loading %s", cls.__name__)
             cls(self)
 
         self.register()
@@ -94,6 +98,6 @@ class MechanismApplication(DbusService):
                                          action_id, {}, 1, "")
 
         logging.debug(str(res))
-        (is_authorized, is_challenge, details) = res
+        (is_authorized, _is_challenge, _details) = res
         if not is_authorized:
             raise DbusError("Not authorized")

@@ -10,7 +10,7 @@ from blueman.plugins.BasePlugin import Option, BasePlugin
 import gi
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
-from gi.repository import Gtk, Gdk, Gio, GLib, GObject
+from gi.repository import Gtk, Gio, GLib, GObject
 
 
 if TYPE_CHECKING:
@@ -72,7 +72,7 @@ class SettingsWidget(Gtk.Box):
 
     def handle_change(self, widget: Gtk.Widget, opt: str, params: Option, prop: str) -> None:
         val = params["type"](getattr(widget.props, prop))
-        logging.debug(f"changed {opt} {val}")
+        logging.debug("changed %s %s", opt, val)
 
         self.inst.set_option(opt, val)
 
@@ -151,7 +151,7 @@ class PluginDialog(Gtk.ApplicationWindow):
 
         self.add(builder.get_widget("all", Gtk.Container))
 
-        self.model = Gio.ListStore.new(PluginItem.__gtype__)
+        self.model = Gio.ListStore.new(PluginItem)
         self.listbox = builder.get_widget("plugin_listbox", Gtk.ListBox)
         self.listbox.bind_model(self.model, self._widget_factory)
         self.listbox.connect("row-selected", self._on_row_selected)
@@ -166,9 +166,9 @@ class PluginDialog(Gtk.ApplicationWindow):
 
         self.populate()
 
-        self.sig_a: int = self.applet.Plugins.connect("plugin-loaded", self.plugin_state_changed, True)
-        self.sig_b: int = self.applet.Plugins.connect("plugin-unloaded", self.plugin_state_changed, False)
-        self.connect("delete-event", self._on_close)
+        self.sig_a: int | None = self.applet.Plugins.connect("plugin-loaded", self.plugin_state_changed, True)
+        self.sig_b: int | None = self.applet.Plugins.connect("plugin-unloaded", self.plugin_state_changed, False)
+        self.connect("destroy", self._on_destroy)
 
         close_action = Gio.SimpleAction.new("close", None)
         close_action.connect("activate", lambda x, y: self.close())
@@ -176,7 +176,7 @@ class PluginDialog(Gtk.ApplicationWindow):
         self.add_action(close_action)
 
     def _add_plugin_action(self, name: str, state: bool, activatable: bool) -> None:
-        logging.debug(f"adding action: {name}")
+        logging.debug("adding action: %s", name)
         action = Gio.SimpleAction.new_stateful(
             name, None, GLib.Variant.new_boolean(state)
         )
@@ -246,7 +246,7 @@ class PluginDialog(Gtk.ApplicationWindow):
                 return
 
         for p in to_unload:
-            logging.debug(f"unloading {p}")
+            logging.debug("unloading %s", p)
             self.applet.Plugins.set_config(p, False)
 
         self.applet.Plugins.set_config(plugin_name, plugin_name not in self.applet.Plugins.get_loaded())
@@ -279,10 +279,16 @@ class PluginDialog(Gtk.ApplicationWindow):
 
         self.update_config_widget(cls)
 
-    def _on_close(self, _widget: Gtk.Widget, _event: Gdk.Event) -> bool:
-        self.applet.Plugins.disconnect(self.sig_a)
-        self.applet.Plugins.disconnect(self.sig_b)
-        return False
+    def _disconnect_plugin_handlers(self) -> None:
+        if self.sig_a is not None:
+            self.applet.Plugins.disconnect(self.sig_a)
+            self.sig_a = None
+        if self.sig_b is not None:
+            self.applet.Plugins.disconnect(self.sig_b)
+            self.sig_b = None
+
+    def _on_destroy(self, _widget: Gtk.Widget) -> None:
+        self._disconnect_plugin_handlers()
 
     def on_prefs_toggled(self, _button: Gtk.ToggleButton) -> None:
         row = self.listbox.get_selected_row()
@@ -333,7 +339,7 @@ class PluginDialog(Gtk.ApplicationWindow):
     _T = TypeVar("_T", bound=BasePlugin)
 
     def plugin_state_changed(self, _plugins: PluginManager[_T], name: str, loaded: bool) -> None:
-        logging.debug(f"{name} {loaded}")
+        logging.debug("%s %s", name, loaded)
         action = self.lookup_action(name)
         assert isinstance(action, Gio.SimpleAction)
         action.set_state(GLib.Variant.new_boolean(loaded))

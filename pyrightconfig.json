@@ -1,8 +1,10 @@
 {
+  "reportIncompatibleMethodOverride": "none",
   "ignore": [
     "blueman/main/Applet.py",
     "blueman/main/Manager.py",
     "blueman/main/Adapter.py",
-    "blueman/main/Tray.py"
+    "blueman/main/Tray.py",
+    "blueman/main/Services.py"
   ]
 }

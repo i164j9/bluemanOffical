@@ -56,7 +56,6 @@ msgstr "შეყვანის ჩვენება"
 
 #: data/ui/manager-main.ui:48
 #, fuzzy
-#| msgid "Bluetooth File Transfer"
 msgid "Bluetooth Devices"
 msgstr "ბლუთუზით ფაილის გადაცემა"
 
@@ -271,7 +270,6 @@ msgstr ""
 
 #: data/ui/services-window.ui:9
 #, fuzzy
-#| msgid "_Local Services"
 msgid "Local Services"
 msgstr "_ლოკალური სერვისები"
 
@@ -3140,7 +3138,6 @@ msgstr ""
 
 #: blueman/plugins/applet/RecentConns.py:191
 #, fuzzy
-#| msgid "Connecting…"
 msgid "Reconnect to…"
 msgstr "დაკავშირება…"
 

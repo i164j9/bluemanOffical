@@ -34,6 +34,15 @@ gi.require_version("Gdk", "3.0")
 from gi.repository import Gtk, Gio, Gdk, GLib, GLibUnix
 
 
+def _is_missing_power_manager_interface(error: GLib.Error) -> bool:
+    message = str(error)
+    return "org.freedesktop.DBus.Error.UnknownMethod" in message or "No such interface" in message
+
+
+POWER_MANAGER_STATUS_RETRY_INTERVAL_MS = 250
+POWER_MANAGER_STATUS_RETRY_LIMIT = 5
+
+
 class Blueman(Gtk.Application):
     window: Gtk.ApplicationWindow | None
     Config: Gio.Settings
@@ -44,10 +53,14 @@ class Blueman(Gtk.Application):
     Toolbar: ManagerToolbar
     Menu: ManagerMenu
     Stats: ManagerStats
+    _power_manager_retry_source_id: int | None
+    _power_manager_retry_attempts: int
 
     def __init__(self) -> None:
         super().__init__(application_id="org.blueman.Manager")
         self._applet_was_running = DBus().NameHasOwner("(s)", AppletService.NAME)
+        self._power_manager_retry_source_id = None
+        self._power_manager_retry_attempts = 0
 
         def do_quit(_: object) -> bool:
             self.quit()
@@ -112,6 +125,7 @@ class Blueman(Gtk.Application):
         Manager.watch_name_owner(self.on_dbus_name_appeared, self.on_dbus_name_vanished)
 
     def do_shutdown(self) -> None:
+        self._clear_power_manager_status_retry()
         Gtk.Application.do_shutdown(self)
 
         if not self._applet_was_running:
@@ -137,14 +151,78 @@ class Blueman(Gtk.Application):
         action = self.lookup_action("bluetooth_status")
 
         if signal_name == 'BluetoothStatusChanged':
+            Blueman._clear_power_manager_status_retry(self)
             status = params.unpack()[0]
-            action.change_state(GLib.Variant.new_boolean(status))
+            action.set_state(GLib.Variant.new_boolean(status))
         elif signal_name == "PluginsChanged":
             if "PowerManager" in self.Applet.QueryPlugins():
-                status = self.PowerManager.get_bluetooth_status()
-                action.change_state(GLib.Variant.new_boolean(status))
+                status = self._get_initial_bluetooth_action_state()
+                action.set_state(GLib.Variant.new_boolean(status))
 
             getattr(self.Toolbar, "_update_buttons")(self.List.Adapter)
+
+    def _try_get_power_manager_status(self, log_missing: bool = True) -> bool | None:
+        try:
+            return self.PowerManager.get_bluetooth_status()
+        except GLib.Error as e:
+            if _is_missing_power_manager_interface(e):
+                if log_missing:
+                    logging.info("PowerManager DBus interface unavailable: %s", e)
+                return None
+            raise
+
+    def _get_power_manager_status(self) -> bool:
+        status = Blueman._try_get_power_manager_status(self)
+        return False if status is None else status
+
+    def _clear_power_manager_status_retry(self) -> None:
+        source_id = getattr(self, "_power_manager_retry_source_id", None)
+        if source_id is not None:
+            GLib.source_remove(source_id)
+            self._power_manager_retry_source_id = None
+        self._power_manager_retry_attempts = 0
+
+    def _schedule_power_manager_status_retry(self) -> None:
+        if getattr(self, "_power_manager_retry_source_id", None) is not None:
+            return
+        if getattr(self, "_power_manager_retry_attempts", 0) >= POWER_MANAGER_STATUS_RETRY_LIMIT:
+            return
+
+        self._power_manager_retry_attempts = getattr(self, "_power_manager_retry_attempts", 0) + 1
+
+        def retry() -> bool:
+            self._power_manager_retry_source_id = None
+            action = self.lookup_action("bluetooth_status")
+            assert action is not None
+
+            if "PowerManager" not in self.Applet.QueryPlugins():
+                self._power_manager_retry_attempts = 0
+                action.set_state(GLib.Variant.new_boolean(False))
+                return False
+
+            status = Blueman._try_get_power_manager_status(self, log_missing=False)
+            if status is None:
+                action.set_state(GLib.Variant.new_boolean(False))
+                self._schedule_power_manager_status_retry()
+                return False
+
+            self._power_manager_retry_attempts = 0
+            action.set_state(GLib.Variant.new_boolean(status))
+            return False
+
+        self._power_manager_retry_source_id = GLib.timeout_add(POWER_MANAGER_STATUS_RETRY_INTERVAL_MS, retry)
+
+    def _get_initial_bluetooth_action_state(self) -> bool:
+        if "PowerManager" not in self.Applet.QueryPlugins():
+            return False
+
+        status = Blueman._try_get_power_manager_status(self, log_missing=False)
+        if status is None:
+            self._schedule_power_manager_status_retry()
+            return False
+
+        self._power_manager_retry_attempts = 0
+        return status
 
     def on_dbus_name_appeared(self, _connection: Gio.DBusConnection, name: str, owner: str) -> None:
         logging.info("%s %s", name, owner)
@@ -168,10 +246,9 @@ class Blueman(Gtk.Application):
 
         self.List.connect("adapter-changed", self.on_adapter_changed)
 
-        pm_available = "PowerManager" in self.Applet.QueryPlugins()
-        action_status = self.PowerManager.get_bluetooth_status() if pm_available else False
+        action_status = self._get_initial_bluetooth_action_state()
         bt_status_action = self.lookup_action("bluetooth_status")
-        bt_status_action.change_state(GLib.Variant.new_boolean(action_status))
+        bt_status_action.set_state(GLib.Variant.new_boolean(action_status))
 
     def on_dbus_name_vanished(self, _connection: Gio.DBusConnection, name: str) -> None:
         logging.info(name)
@@ -195,7 +272,13 @@ class Blueman(Gtk.Application):
         action.set_state(state_variant)
 
         state = state_variant.unpack()
-        self.PowerManager.set_bluetooth_status(state)
+        try:
+            self.PowerManager.set_bluetooth_status(state)
+        except GLib.Error as e:
+            if _is_missing_power_manager_interface(e):
+                logging.info("PowerManager DBus interface unavailable: %s", e)
+                return
+            raise
 
         if state:
             icon_name = "bluetooth"
@@ -357,13 +440,31 @@ class Blueman(Gtk.Application):
     def toggle_blocked(device: Device) -> None:
         device['Blocked'] = not device['Blocked']
 
+    @staticmethod
+    def _sendto_command(adapter: Adapter, device: Device) -> str:
+        command = ["blueman-sendto"]
+
+        if logging.getLogger().isEnabledFor(logging.DEBUG):
+            command.extend(["--loglevel", "DEBUG"])
+
+        command.extend([
+            f"--source={adapter['Address']}",
+            f"--device={device['Address']}",
+        ])
+
+        return " ".join(command)
+
+    def _launch_sendto(self, adapter: Adapter, device: Device) -> None:
+        command = Blueman._sendto_command(adapter, device)
+        logging.info("Launching file sender for %s via %s", device["Address"], adapter["Address"])
+        logging.debug("File sender command: %s", command)
+        launch(command, name=_("File Sender"))
+
     def send(self, device: Device) -> None:
         adapter = self.List.Adapter
-
         assert adapter
 
-        command = f"blueman-sendto --source={adapter['Address']} --device={device['Address']}"
-        launch(command, name=_("File Sender"))
+        self._launch_sendto(adapter, device)
 
     def remove(self, device: Device) -> None:
         assert self.List.Adapter

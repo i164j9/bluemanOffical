@@ -1,7 +1,9 @@
 from collections import OrderedDict
-from typing import Union, TypeVar, Any
+from typing import Union, TypeVar, Any, cast
 from collections.abc import Iterable, Callable
 
+import gi
+gi.require_version("Pango", "1.0")
 from gi.repository import Gio, GLib, Pango
 
 from blueman.main.DbusService import DbusService
@@ -11,6 +13,10 @@ from blueman.main.indicators.GtkStatusIcon import MenuItemActivator
 from blueman.plugins.applet.Menu import MenuItemDict, SubmenuItemDict
 
 
+NO_BUS_NAME_WATCHER_FLAGS = cast(Gio.BusNameWatcherFlags, 0)
+NO_DBUS_CALL_FLAGS = cast(Gio.DBusCallFlags, 0)
+
+
 class MenuService(DbusService):
     def __init__(self, on_activate_menu_item: MenuItemActivator) -> None:
         super().__init__(None, "com.canonical.dbusmenu", "/org/blueman/sni/menu", Gio.BusType.SESSION)
@@ -18,6 +24,7 @@ class MenuService(DbusService):
         self._revision = 0
         self._revision_advertised = -1
         self._on_activate = on_activate_menu_item
+        self._revision_source_id: int | None = None
 
         self.add_method("GetLayout", ("i", "i", "as"), ("u", "(ia{sv}av)"), self._get_layout)
         self.add_method("Event", ("i", "s", "v", "u"), (), self._on_event)
@@ -29,7 +36,7 @@ class MenuService(DbusService):
 
         self.add_signal("LayoutUpdated", ("u", "i"))
 
-        GLib.timeout_add(100, self._advertise_revision)
+        self._revision_source_id = GLib.timeout_add(100, self._advertise_revision)
 
     def set_items(self, items: Iterable[MenuItemDict]) -> None:
         self._items = OrderedDict((item["id"], item) for item in items)
@@ -93,6 +100,12 @@ class MenuService(DbusService):
             else:
                 self._on_activate(idx >> 8, idx % (1 << 8) - 1)
 
+    def destroy(self) -> None:
+        if self._revision_source_id is not None:
+            GLib.source_remove(self._revision_source_id)
+            self._revision_source_id = None
+        self.unregister()
+
 
 class StatusNotifierItemService(DbusService):
     Category = "Hardware"
@@ -125,11 +138,17 @@ class StatusNotifierItemService(DbusService):
         super().unregister()
         self.menu.unregister()
 
+    def destroy(self) -> None:
+        super().unregister()
+        self.menu.destroy()
+
 
 class StatusNotifierItem(IndicatorInterface):
     _SNI_BUS_NAME = _SNI_INTERFACE_NAME = "org.kde.StatusNotifierWatcher"
 
     def __init__(self, tray: BluemanTray, icon_name: str) -> None:
+        self._destroyed = False
+        self._watcher_watch_id: int | None = None
         self._sni = StatusNotifierItemService(tray, icon_name)
         self._sni.register()
 
@@ -140,22 +159,31 @@ class StatusNotifierItem(IndicatorInterface):
         def on_watcher_appeared(*args: Any) -> None:
             nonlocal watcher_expected
 
+            if self._destroyed:
+                return
+
             if watcher_expected:
                 watcher_expected = False
             else:
                 tray.activate()
 
-        Gio.bus_watch_name(Gio.BusType.SESSION, self._SNI_BUS_NAME, Gio.BusNameWatcherFlags.NONE,
-                           on_watcher_appeared, None)
+        self._watcher_watch_id = Gio.bus_watch_name(
+            Gio.BusType.SESSION,
+            self._SNI_BUS_NAME,
+            NO_BUS_NAME_WATCHER_FLAGS,
+            on_watcher_appeared,
+            None,
+        )
 
         try:
             Gio.bus_get_sync(Gio.BusType.SESSION).call_sync(
                 self._SNI_BUS_NAME, "/StatusNotifierWatcher", self._SNI_INTERFACE_NAME,
                 "RegisterStatusNotifierItem", GLib.Variant("(s)", ("/org/blueman/sni",)),
-                None, Gio.DBusCallFlags.NONE, -1)
+                None, NO_DBUS_CALL_FLAGS, -1)
             watcher_expected = True
         except GLib.Error as e:
             watcher_expected = not is_service_unknown(e)
+            self.destroy()
             raise IndicatorNotAvailable
 
     def set_icon(self, icon_name: str) -> None:
@@ -176,6 +204,18 @@ class StatusNotifierItem(IndicatorInterface):
 
     def set_menu(self, menu: Iterable[MenuItemDict]) -> None:
         self._sni.menu.set_items(menu)
+
+    def destroy(self) -> None:
+        if self._destroyed:
+            return
+
+        self._destroyed = True
+
+        if self._watcher_watch_id is not None:
+            Gio.bus_unwatch_name(self._watcher_watch_id)
+            self._watcher_watch_id = None
+
+        self._sni.destroy()
 
 
 def is_service_unknown(error: GLib.Error) -> bool:

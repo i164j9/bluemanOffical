@@ -204,7 +204,6 @@ msgstr "_Pārstatīt"
 #: data/ui/rename-device.ui:42 data/ui/note.ui:27 blueman/main/Sendto.py:233
 #: blueman/gui/DeviceSelectorDialog.py:19
 #, fuzzy
-#| msgid "Cancelling"
 msgid "_Cancel"
 msgstr "Atceļ"
 
@@ -243,7 +242,6 @@ msgstr "<b>PAN Atbalsts</b>"
 
 #: data/ui/services-network.ui:317
 #, fuzzy
-#| msgid "Dialup Networking (DUN)"
 msgid "Dial-up Networking"
 msgstr "Iezvanpieejas Tīklošana (DUN)"
 
@@ -257,7 +255,6 @@ msgstr "Tīkla Pieejas Punkts (NAP)"
 
 #: data/ui/services-network.ui:348
 #, fuzzy
-#| msgid "<b>PAN Support</b>"
 msgid "<b>NAP Support</b>"
 msgstr "<b>PAN Atbalsts</b>"
 
@@ -621,7 +618,6 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceList.py:342
 #, fuzzy
-#| msgid "Rename device"
 msgid "Unnamed device"
 msgstr "Pārsaukt iekārtu"
 
@@ -645,13 +641,11 @@ msgstr "Savienots"
 
 #: blueman/gui/manager/ManagerDeviceList.py:571
 #, fuzzy
-#| msgid "Trust"
 msgid "Trusted"
 msgstr "Uzticēties"
 
 #: blueman/gui/manager/ManagerDeviceList.py:573
 #, fuzzy
-#| msgid "Pair"
 msgid "Paired"
 msgstr "Pārot"
 
@@ -749,7 +743,6 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceMenu.py:206
 #, fuzzy
-#| msgid "Unknown"
 msgid "Unknown error"
 msgstr "Nezināms"
 
@@ -768,7 +761,6 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceMenu.py:303
 #, fuzzy
-#| msgid "<b>Disconnect:</b>"
 msgid "<b>_Disconnect</b>"
 msgstr "<b>Atvienoties:</b>"
 
@@ -816,7 +808,6 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceMenu.py:400
 #, fuzzy
-#| msgid "Send files to this device"
 msgid "Block/Unblock this device"
 msgstr "Sūtīt failus uz šo iekārtu"
 
@@ -1517,7 +1508,6 @@ msgstr "Tīkla Pieejas Punkts"
 
 #: blueman/DeviceClass.py:242
 #, fuzzy
-#| msgid "Device"
 msgid "Mesh Device"
 msgstr "Ierīce"
 
@@ -1589,7 +1579,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:259
 #, fuzzy
-#| msgid "File Sender"
 msgid "Fire Sensor"
 msgstr "Failu Sūtītājs"
 
@@ -1912,7 +1901,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:344
 #, fuzzy
-#| msgid "Plugins"
 msgid "Plug"
 msgstr "Spraudņi"
 
@@ -2034,7 +2022,6 @@ msgstr "viedtālrunis"
 
 #: blueman/DeviceClass.py:373
 #, fuzzy
-#| msgid "Audio Source"
 msgid "Generic Audio Source"
 msgstr "Audio Avots"
 
@@ -2056,7 +2043,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:379
 #, fuzzy
-#| msgid "Service:"
 msgid "Service Desk"
 msgstr "Serviss:"
 
@@ -2070,7 +2056,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:382
 #, fuzzy
-#| msgid "Audio Profile"
 msgid "Auditorium"
 msgstr "Audio Profils"
 
@@ -2249,7 +2234,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:427
 #, fuzzy
-#| msgid "Receiving file"
 msgid "Receiver"
 msgstr "Saņem failu"
 
@@ -3609,7 +3593,6 @@ msgstr ""
 
 #: blueman/plugins/applet/PulseAudioProfile.py:83
 #, fuzzy, python-format
-#| msgid "Audio Profile"
 msgid "Audio Profiles for %s"
 msgstr "Audio Profils"
 

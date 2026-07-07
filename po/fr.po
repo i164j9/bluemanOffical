@@ -3243,7 +3243,6 @@ msgstr "L'adaptateur pour cette connexion n'est pas disponible"
 
 #: blueman/plugins/applet/RecentConns.py:191
 #, fuzzy
-#| msgid "Disconnecting…"
 msgid "Reconnect to…"
 msgstr "Déconnexion …"
 
@@ -3597,13 +3596,11 @@ msgstr "Utilise une icône d'état de type StatusNotifierItem"
 
 #: blueman/plugins/applet/PulseAudioProfile.py:19
 #, fuzzy
-#| msgid "Adds standard menu items to the status icon menu"
 msgid "Adds audio profile selector to the status icon menu"
 msgstr "Rajoute des éléments standards de menu au menu de l'icône d'état"
 
 #: blueman/plugins/applet/PulseAudioProfile.py:83
 #, fuzzy, python-format
-#| msgid "Audio Profile"
 msgid "Audio Profiles for %s"
 msgstr "Profil audio"
 

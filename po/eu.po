@@ -3531,13 +3531,11 @@ msgstr "StatusNotifierItem bat ematen du egoera-ikonoa erakusteko"
 
 #: blueman/plugins/applet/PulseAudioProfile.py:19
 #, fuzzy
-#| msgid "Adds standard menu items to the status icon menu"
 msgid "Adds audio profile selector to the status icon menu"
 msgstr "Menu-elementu estandarrak gehitzen ditu egoera-ikonoaren menuan"
 
 #: blueman/plugins/applet/PulseAudioProfile.py:83
 #, fuzzy, python-format
-#| msgid "Audio Profile"
 msgid "Audio Profiles for %s"
 msgstr "Audio profila"
 

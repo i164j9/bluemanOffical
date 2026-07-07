@@ -34,16 +34,18 @@ class AnyBase(GObject.GObject):
                 for key in list(changed) + invalidated:
                     this.emit('property-changed', key, changed.get(key, None), object_path)
 
-        weakref.finalize(
-            self,
-            bus.signal_unsubscribe,
-            bus.signal_subscribe(
-                "org.bluez",
-                "org.freedesktop.DBus.Properties",
-                "PropertiesChanged",
-                None,
-                None,
-                Gio.DBusSignalFlags.NONE,
-                on_signal
-            )
+        subscription_id = bus.signal_subscribe(
+            "org.bluez",
+            "org.freedesktop.DBus.Properties",
+            "PropertiesChanged",
+            None,
+            None,
+            Gio.DBusSignalFlags(0),
+            on_signal
         )
+
+        self._finalizer = weakref.finalize(self, bus.signal_unsubscribe, subscription_id)
+
+    def destroy(self) -> None:
+        if self._finalizer.alive:
+            self._finalizer()

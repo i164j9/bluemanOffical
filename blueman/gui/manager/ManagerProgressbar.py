@@ -57,7 +57,7 @@ class ManagerProgressbar(GObject.GObject):
         hbox.pack_end(self.progressbar, False, False, 5)
 
         if ManagerProgressbar.__instances__:
-            logging.info(f"hiding {ManagerProgressbar.__instances__[-1]}")
+            logging.info("hiding %s", ManagerProgressbar.__instances__[-1])
             ManagerProgressbar.__instances__[-1].hide()
 
         self.show()
@@ -142,9 +142,9 @@ class ManagerProgressbar(GObject.GObject):
                     statusbar = self.Blueman.builder.get_widget("statusbar", Gtk.Box)
                     statusbar.props.visible = False
 
-            for sig in self._signals:
-                if self.handler_is_connected(sig):
-                    self.disconnect(sig)
+            # The progress bar is being finalized and removed from the UI.
+            # Its own temporary signal handlers do not need explicit disconnects,
+            # and may already be gone by the time the timeout-driven finalize runs.
             self._signals = []
         return False
 

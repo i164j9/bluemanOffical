@@ -121,10 +121,14 @@ class PowerManager(AppletPlugin, StatusIconProvider):
             self.called = 0
             self.state = state
             self.success = False
+            self._canceled = False
             self.timer = GLib.timeout_add(5000, self.timeout)
             self.parent.track_callback(self)
 
         def __call__(self, result: bool) -> None:
+            if self._canceled:
+                return
+
             self.called += 1
 
             if result:
@@ -133,6 +137,9 @@ class PowerManager(AppletPlugin, StatusIconProvider):
             self.check()
 
         def check(self) -> None:
+            if self._canceled:
+                return
+
             if self.called == self.num_cb:
                 GLib.source_remove(self.timer)
                 self.parent.forget_callback(self)
@@ -142,6 +149,9 @@ class PowerManager(AppletPlugin, StatusIconProvider):
                 self.parent.request_in_progress = False
 
         def timeout(self) -> bool:
+            if self._canceled:
+                return False
+
             self.parent.forget_callback(self)
             logging.info("Timeout reached while setting power state")
             self.parent.update_power_state()
@@ -149,6 +159,10 @@ class PowerManager(AppletPlugin, StatusIconProvider):
             return False
 
         def cancel(self) -> None:
+            if self._canceled:
+                return
+
+            self._canceled = True
             GLib.source_remove(self.timer)
             self.parent.forget_callback(self)
 

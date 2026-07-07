@@ -254,7 +254,6 @@ msgstr ""
 
 #: data/ui/services-network.ui:348
 #, fuzzy
-#| msgid "<b>PAN Support</b>"
 msgid "<b>NAP Support</b>"
 msgstr "<b>Cymorth PAN</b>"
 
@@ -618,7 +617,6 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceList.py:342
 #, fuzzy
-#| msgid "Rename device"
 msgid "Unnamed device"
 msgstr "Ailenwi'r ddyfais"
 
@@ -641,13 +639,11 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceList.py:571
 #, fuzzy
-#| msgid "Trust"
 msgid "Trusted"
 msgstr "Ffydd"
 
 #: blueman/gui/manager/ManagerDeviceList.py:573
 #, fuzzy
-#| msgid "Pair"
 msgid "Paired"
 msgstr "Paru"
 
@@ -745,7 +741,6 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceMenu.py:206
 #, fuzzy
-#| msgid "Unknown"
 msgid "Unknown error"
 msgstr "Anhysbys"
 
@@ -764,7 +759,6 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceMenu.py:303
 #, fuzzy
-#| msgid "<b>Disconnect:</b>"
 msgid "<b>_Disconnect</b>"
 msgstr "<b>Datgysylltu:</b>"
 
@@ -812,7 +806,6 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceMenu.py:400
 #, fuzzy
-#| msgid "Send files to this device"
 msgid "Block/Unblock this device"
 msgstr "Anfon ffeiliau i'r ddyfais hon"
 
@@ -1501,7 +1494,6 @@ msgstr "Derbyn"
 
 #: blueman/DeviceClass.py:242
 #, fuzzy
-#| msgid "Device"
 msgid "Mesh Device"
 msgstr "Dyfais"
 
@@ -1894,7 +1886,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:344
 #, fuzzy
-#| msgid "Plugins"
 msgid "Plug"
 msgstr "Ategion"
 
@@ -2016,7 +2007,6 @@ msgstr "meicroffon"
 
 #: blueman/DeviceClass.py:373
 #, fuzzy
-#| msgid "Audio Source"
 msgid "Generic Audio Source"
 msgstr "Ffynhonnell Sain"
 
@@ -2038,7 +2028,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:379
 #, fuzzy
-#| msgid "Service:"
 msgid "Service Desk"
 msgstr "Gwasanaeth:"
 
@@ -2052,7 +2041,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:382
 #, fuzzy
-#| msgid "Audio Profile"
 msgid "Auditorium"
 msgstr "Proffil Sain"
 
@@ -2231,7 +2219,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:427
 #, fuzzy
-#| msgid "Receiving file"
 msgid "Receiver"
 msgstr "Wrthi'n derbyn y ffeil"
 
@@ -3585,7 +3572,6 @@ msgstr ""
 
 #: blueman/plugins/applet/PulseAudioProfile.py:83
 #, fuzzy, python-format
-#| msgid "Audio Profile"
 msgid "Audio Profiles for %s"
 msgstr "Proffil Sain"
 

@@ -22,8 +22,10 @@ class PulseAudioProfile(ManagerPlugin, MenuItemsProvider):
     _pa: PulseAudioUtils
     _pa_event_handler_id: int | None = None
     _pa_connected_handler_id: int | None = None
+    _active: bool
 
     def on_load(self) -> None:
+        self._active = True
         self.devices: dict[str, CardInfo] = {}
 
         self.deferred: list[Device] = []
@@ -33,14 +35,22 @@ class PulseAudioProfile(ManagerPlugin, MenuItemsProvider):
         self._pa_connected_handler_id = self._pa.connect("connected", self.on_pa_ready)
 
     def on_unload(self) -> None:
-        if self._pa_event_handler_id is not None:
+        self._active = False
+        if self._pa_event_handler_id is not None and self._pa.handler_is_connected(self._pa_event_handler_id):
             self._pa.disconnect(self._pa_event_handler_id)
             self._pa_event_handler_id = None
-        if self._pa_connected_handler_id is not None:
+        elif self._pa_event_handler_id is not None:
+            self._pa_event_handler_id = None
+        if self._pa_connected_handler_id is not None and self._pa.handler_is_connected(self._pa_connected_handler_id):
             self._pa.disconnect(self._pa_connected_handler_id)
+            self._pa_connected_handler_id = None
+        elif self._pa_connected_handler_id is not None:
             self._pa_connected_handler_id = None
 
     def on_pa_ready(self, _utils: PulseAudioUtils) -> None:
+        if not self._active:
+            return
+
         logging.info("connected")
         for dev in self.deferred:
             self.regenerate_with_device(dev['Address'])
@@ -57,6 +67,9 @@ class PulseAudioProfile(ManagerPlugin, MenuItemsProvider):
         logging.debug("%s %s", event, idx)
 
         def get_card_cb(card: CardInfo) -> None:
+            if not self._active:
+                return
+
             drivers = ("module-bluetooth-device.c",
                        "module-bluez4-device.c",
                        "module-bluez5-device.c")
@@ -65,7 +78,7 @@ class PulseAudioProfile(ManagerPlugin, MenuItemsProvider):
                 self.devices[card["proplist"]["device.string"]] = card
                 self.regenerate_with_device(card["proplist"]["device.string"])
 
-        if event & EventType.CARD:
+        if event & EventType.FACILITY_MASK == EventType.CARD:
             logging.info("card")
             if event & EventType.CHANGE:
                 logging.info("change")
@@ -78,6 +91,9 @@ class PulseAudioProfile(ManagerPlugin, MenuItemsProvider):
 
     def query_pa(self, device: Device, item: Gtk.MenuItem) -> None:
         def list_cb(cards: Mapping[str, CardInfo]) -> None:
+            if not self._active:
+                return
+
             for c in cards.values():
                 if c["proplist"]["device.string"] == device['Address']:
                     self.devices[device['Address']] = c
@@ -94,6 +110,9 @@ class PulseAudioProfile(ManagerPlugin, MenuItemsProvider):
             c = self.devices[device['Address']]
 
             def on_result(res: int) -> None:
+                if not self._active:
+                    return
+
                 if not res:
                     self.parent.infobar_update(_("Failed to change profile to %s" % profile))
 

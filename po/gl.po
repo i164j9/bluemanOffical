@@ -740,7 +740,6 @@ msgstr "Amosar información do dispositivo"
 
 #: blueman/gui/manager/ManagerDeviceMenu.py:206
 #, fuzzy
-#| msgid "Unknown"
 msgid "Unknown error"
 msgstr "Descoñecido"
 
@@ -760,7 +759,6 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceMenu.py:303
 #, fuzzy
-#| msgid "<b>Disconnect:</b>"
 msgid "<b>_Disconnect</b>"
 msgstr "<b>Desconectar:</b>"
 
@@ -808,7 +806,6 @@ msgstr ""
 
 #: blueman/gui/manager/ManagerDeviceMenu.py:400
 #, fuzzy
-#| msgid "Send files to this device"
 msgid "Block/Unblock this device"
 msgstr "Enviar ficheiros ao dispositivo"
 
@@ -870,7 +867,6 @@ msgstr ""
 
 #: blueman/gui/applet/PluginDialog.py:267
 #, fuzzy
-#| msgid "Dependency issue"
 msgid "No dependencies"
 msgstr "Problema de dependencia"
 
@@ -1514,7 +1510,6 @@ msgstr "Punto de acceso á rede"
 
 #: blueman/DeviceClass.py:242
 #, fuzzy
-#| msgid "Device"
 msgid "Mesh Device"
 msgstr "Dispositivo"
 
@@ -1586,7 +1581,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:259
 #, fuzzy
-#| msgid "File Sender"
 msgid "Fire Sensor"
 msgstr "Transmisor de ficheiros"
 
@@ -1909,7 +1903,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:344
 #, fuzzy
-#| msgid "Plugins"
 msgid "Plug"
 msgstr "Engadidos"
 
@@ -2005,7 +1998,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:367
 #, fuzzy
-#| msgid "Audio Sink"
 msgid "Generic Audio Sink"
 msgstr "Receptor de son"
 
@@ -2032,7 +2024,6 @@ msgstr "teléfono intelixente"
 
 #: blueman/DeviceClass.py:373
 #, fuzzy
-#| msgid "Audio Source"
 msgid "Generic Audio Source"
 msgstr "Fonte de son"
 
@@ -2050,7 +2041,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:378
 #, fuzzy
-#| msgid "Pair Device"
 msgid "Broadcasting Device"
 msgstr "Emparellar o dispositivo"
 
@@ -2068,7 +2058,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:382
 #, fuzzy
-#| msgid "Audio Profile"
 msgid "Auditorium"
 msgstr "Perfil de son"
 
@@ -2247,7 +2236,6 @@ msgstr ""
 
 #: blueman/DeviceClass.py:427
 #, fuzzy
-#| msgid "Receiving file"
 msgid "Receiver"
 msgstr "Recibindo un ficheiro"
 
@@ -3207,10 +3195,6 @@ msgstr "Confirma que quere reiniciar o contador?"
 
 #: blueman/plugins/applet/NetUsage.py:289
 #, fuzzy
-#| msgid ""
-#| "Allows you to monitor your (mobile broadband) network traffic usage. "
-#| "Useful for limited data access plans. This plugin tracks every device "
-#| "seperately."
 msgid ""
 "Allows you to monitor your (mobile broadband) network traffic usage. Useful "
 "for limited data access plans. This plugin tracks every device separately."
@@ -3466,9 +3450,6 @@ msgstr ""
 
 #: blueman/plugins/applet/ShowConnected.py:22
 #, fuzzy
-#| msgid ""
-#| "Adds an indication on the status icon when Bluetooth is active and shows "
-#| "the number of connections in the tooltip."
 msgid ""
 "Adds an indication on the status icon when Bluetooth is active and shows the "
 "connections in the tooltip."
@@ -3563,14 +3544,6 @@ msgstr "Script a executar na conexión"
 
 #: blueman/plugins/applet/SerialManager.py:33
 #, fuzzy
-#| msgid ""
-#| "<span size=\"small\">The following arguments will be passed:\n"
-#| "Address, Name, service name, uuid16s, rfcomm node\n"
-#| "For example:\n"
-#| "AA:BB:CC:DD:EE:FF, Phone, DUN service, 0x1103, /dev/rfcomm0\n"
-#| "uuid16s are returned as a comma seperated list\n"
-#| "\n"
-#| "Upon device disconnection the script will be sent a HUP signal</span>"
 msgid ""
 "<span size=\"small\">The following arguments will be passed:\n"
 "Address, Name, service name, uuid16s, rfcomm node\n"
@@ -3649,13 +3622,11 @@ msgstr "Utiliza libappindicator para amosar unha icona de estado"
 
 #: blueman/plugins/applet/PulseAudioProfile.py:19
 #, fuzzy
-#| msgid "Adds standard menu items to the status icon menu"
 msgid "Adds audio profile selector to the status icon menu"
 msgstr "Engade os elementos do menú estándar ao menú da icona de estado"
 
 #: blueman/plugins/applet/PulseAudioProfile.py:83
 #, fuzzy, python-format
-#| msgid "Audio Profile"
 msgid "Audio Profiles for %s"
 msgstr "Perfil de son"
 

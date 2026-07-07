@@ -30,9 +30,9 @@ class ManagerToolbar:
         self.b_trust = blueman.builder.get_widget("b_trust", Gtk.ToolButton)
 
         self.b_trust.props.label = _("Untrust")
-        (size, nsize) = Gtk.Widget.get_preferred_size(self.b_trust)
+        size, _natural_size = Gtk.Widget.get_preferred_size(self.b_trust)
         self.b_trust.props.label = _("Trust")
-        (size2, nsize2) = Gtk.Widget.get_preferred_size(self.b_trust)
+        size2, _natural_size2 = Gtk.Widget.get_preferred_size(self.b_trust)
         self.b_trust.props.width_request = max(size.width, size2.width)
 
         self.b_remove = blueman.builder.get_widget("b_remove", Gtk.ToolButton)
@@ -46,18 +46,18 @@ class ManagerToolbar:
 
     def on_adapter_property_changed(self, _lst: ManagerDeviceList, adapter: Adapter,
                                     key_value: tuple[str, object]) -> None:
-        key, value = key_value
+        key, _value = key_value
         if key == "Discovering" or key == "Powered":
             self._update_buttons(adapter)
 
     def on_adapter_changed(self, _lst: ManagerDeviceList, adapter_path: ObjectPath | None) -> None:
-        logging.debug(f"toolbar adapter {adapter_path}")
+        logging.debug("toolbar adapter %s", adapter_path)
         self._update_buttons(None if adapter_path is None else Adapter(obj_path=adapter_path))
 
     def on_device_selected(
         self,
         dev_list: ManagerDeviceList,
-        device: Device | None,
+        _device: Device | None,
         _tree_iter: Gtk.TreeIter,
     ) -> None:
         self._update_buttons(dev_list.Adapter)
@@ -95,7 +95,7 @@ class ManagerToolbar:
 
     def on_device_propery_changed(self, dev_list: ManagerDeviceList, device: Device, tree_iter: Gtk.TreeIter,
                                   key_value: tuple[str, object]) -> None:
-        key, value = key_value
+        key, _value = key_value
         if dev_list.compare(tree_iter, dev_list.selected()):
             if key == "Trusted" or key == "Paired" or key == "UUIDs":
                 self.on_device_selected(dev_list, device, tree_iter)

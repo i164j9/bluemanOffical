@@ -57,8 +57,10 @@ class KillSwitch(AppletPlugin, PowerStateHandler, StatusIconVisibilityHandler):
     _connman_watch_id: int | None = None
     _enabled: bool = True
     _hardblocked: bool = False
+    _active: bool
 
     def on_load(self) -> None:
+        self._active = True
         self._rfkill = Gio.File.new_for_path("/dev/rfkill")
         start_event = Gio.FileMonitorEvent.CREATED if self._rfkill.query_exists() else Gio.FileMonitorEvent.DELETED
 
@@ -75,6 +77,7 @@ class KillSwitch(AppletPlugin, PowerStateHandler, StatusIconVisibilityHandler):
         )
 
     def on_unload(self) -> None:
+        self._active = False
         Gio.bus_unwatch_name(self._connman_watch_id)
         self._connman_proxy = None
         if self._monitor is not None:
@@ -174,9 +177,13 @@ class KillSwitch(AppletPlugin, PowerStateHandler, StatusIconVisibilityHandler):
         logging.info(state)
 
         def reply(*_: Any) -> None:
+            if not self._active:
+                return
             cb(True)
 
         def error(*_: Any) -> None:
+            if not self._active:
+                return
             cb(False)
 
         if self._connman_proxy:

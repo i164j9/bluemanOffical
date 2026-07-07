@@ -21,12 +21,14 @@ class AudioProfiles(AppletPlugin):
 
     def __init__(self, parent: Any):
         super().__init__(parent)
+        self._active = False
         self._devices: dict[str, CardInfo] = {}
         self._device_menus: dict[str, MenuItem] = {}
         self._menu: Any = None
         self._pa: PulseAudioUtils | None = None
 
     def on_load(self) -> None:
+        self._active = True
         self._devices = {}
         self._device_menus = {}
 
@@ -94,6 +96,9 @@ class AudioProfiles(AppletPlugin):
 
     def query_pa(self, device: Device) -> None:
         def list_cb(cards: Mapping[str, CardInfo]) -> None:
+            if not self._active:
+                return
+
             for c in cards.values():
                 if c["proplist"]["device.string"] == device['Address']:
                     self._devices[device['Address']] = c
@@ -109,6 +114,9 @@ class AudioProfiles(AppletPlugin):
         c = self._devices[device['Address']]
 
         def on_result(res: int) -> None:
+            if not self._active:
+                return
+
             if not res:
                 logging.error("Failed to change profile to %s", profile['name'])
 
@@ -118,6 +126,9 @@ class AudioProfiles(AppletPlugin):
         logging.debug("%s %s", event, idx)
 
         def get_card_cb(card: CardInfo) -> None:
+            if not self._active:
+                return
+
             drivers = ("module-bluetooth-device.c",
                        "module-bluez4-device.c",
                        "module-bluez5-device.c")
@@ -139,6 +150,9 @@ class AudioProfiles(AppletPlugin):
                 utils.get_card(idx, get_card_cb)
 
     def on_pa_ready(self, _utils: PulseAudioUtils) -> None:
+        if not self._active:
+            return
+
         logging.info("PulseAudio Ready")
         self.generate_menu()
 
@@ -159,11 +173,18 @@ class AudioProfiles(AppletPlugin):
         self.clear_menu()
 
     def on_unload(self) -> None:
-        if self._pa is not None and self._pa_event_handler_id is not None:
+        self._active = False
+        if self._pa is not None and self._pa_event_handler_id is not None \
+                and self._pa.handler_is_connected(self._pa_event_handler_id):
             self._pa.disconnect(self._pa_event_handler_id)
             self._pa_event_handler_id = None
-        if self._pa is not None and self._pa_connected_handler_id is not None:
+        elif self._pa_event_handler_id is not None:
+            self._pa_event_handler_id = None
+        if self._pa is not None and self._pa_connected_handler_id is not None \
+                and self._pa.handler_is_connected(self._pa_connected_handler_id):
             self._pa.disconnect(self._pa_connected_handler_id)
+            self._pa_connected_handler_id = None
+        elif self._pa_connected_handler_id is not None:
             self._pa_connected_handler_id = None
         self.clear_menu()
 
